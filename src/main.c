@@ -25,6 +25,8 @@ void free_omim_list(struct OMIM_list* ol);
 struct OMIM* init_omim_entry(void);
 void free_omim(struct OMIM* omim);
 
+int remove_comma(char* in);
+
 int main (int argc, char * argv[])
 {
         struct parameters* param = NULL;
@@ -526,6 +528,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                 
                 if(strcmp(ol->terms[cur_OMIM]->mimNumber,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->mimNumber,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->mimNumber));
                 }else{
                         new = 1;  
                 }
@@ -534,6 +537,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"phenotype") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->phenotype,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->phenotype,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->phenotype));
                 }else{
                         new = 1;  
                 }                
@@ -541,6 +545,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"phenotypeMimNumber") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->phenotypeMimNumber,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->phenotypeMimNumber,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->phenotypeMimNumber));
                 }else{
                         new = 1;  
                 }                
@@ -548,6 +553,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"phenotypeMappingKey") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->phenotypeMappingKey ,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->phenotypeMappingKey,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->phenotypeMappingKey));
                 }else{
                         new = 1;  
                 }                
@@ -555,6 +561,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"phenotypeInheritance") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->phenotypeInheritance,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->phenotypeInheritance,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->phenotypeInheritance));
                 }else{
                         new = 1;  
                 }                
@@ -562,6 +569,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"sequenceID") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->sequenceID,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->sequenceID,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->sequenceID));
                 }else{
                         new = 1;  
                 }                
@@ -570,6 +578,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"chromosome") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->chromosome,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->chromosome,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->chromosome));
                 }else{
                         new = 1;  
                 }                
@@ -578,6 +587,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"chromosomeSymbol") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->chromosomeSymbol,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->chromosomeSymbol,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->chromosomeSymbol));
                 }else{
                         new = 1;  
                 }                
@@ -585,6 +595,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"chromosomeSort") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->chromosomeSort,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->chromosomeSort,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->chromosomeSort));
                 }else{
                         new = 1;  
                 }                
@@ -593,6 +604,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"chromosomeLocationStart") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->chromosomeLocationStart,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->chromosomeLocationStart,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->chromosomeLocationStart));
                 }else{
                         new = 1;  
                 }                
@@ -601,6 +613,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"chromosomeLocationEnd") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->chromosomeLocationEnd,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->chromosomeLocationEnd,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->chromosomeLocationEnd));
                 }else{
                         new = 1;  
                 }                
@@ -609,6 +622,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"transcript") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->transcript,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->transcript,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->transcript));
                 }else{
                         new = 1;  
                 }                
@@ -616,6 +630,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"cytoLocation") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->cytoLocation,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->cytoLocation,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->cytoLocation));
                 }else{
                         new = 1;  
                 }                
@@ -624,6 +639,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"computedCytoLocation") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->computedCytoLocation,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->computedCytoLocation,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->computedCytoLocation));
                 }else{
                         new = 1;  
                 }                
@@ -632,6 +648,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"geneInheritance") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->geneInheritance,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->geneInheritance,"%s", value);
+                        RUN(remove_comma(ol->terms[cur_OMIM]->geneInheritance));
                 }else{
                         new = 1;  
                 }                
@@ -678,7 +695,20 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
 ERROR:
         return FAIL; 
 }
-                
+
+int remove_comma(char* in)
+{
+        int i;
+        int len;
+        len = strlen(in);
+        for(i = 0; i < len;i++){
+                if(in[i] == ','){
+                        in[i] = '_';
+                }
+        }
+        return OK;
+}
+
 static size_t parseStreamCallback(void *contents, size_t length, size_t nmemb, void *userp)
 {
         XML_Parser parser = (XML_Parser) userp;
