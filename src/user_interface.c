@@ -3,6 +3,8 @@
 #define OPT_PATIENT_ID 2
 #define OPT_SQLITE_DB 3
 #define OPT_PHENOFILE 4
+#define OPT_OUTFILE 5
+
 
 #include "phenoparser.h"
 
@@ -128,13 +130,14 @@ ERROR:
 
 int print_panel_help(int argc, char * argv[])
 {
-        const char usage[] = " insert [-options] ";
+        const char usage[] = " panel [-options] ";
         fprintf(stdout,"\nUsage: %s %s\n\n",basename(argv[0]) ,usage);	
         fprintf(stdout,"Options:\n\n");
 	
        
         fprintf(stdout,"%*s%-*s: %s %s\n",3,"",MESSAGE_MARGIN-3,"--id","Patient ID." ,"[NA]"  );
         fprintf(stdout,"%*s%-*s: %s %s\n",3,"",MESSAGE_MARGIN-3,"--db","Local database name" ,"[NA]"  );
+        fprintf(stdout,"%*s%-*s: %s %s\n",3,"",MESSAGE_MARGIN-3,"--out","Output file name" ,"[NA]"  );
         fprintf(stdout,"\n");
         return OK;
 }
@@ -164,7 +167,8 @@ struct parameters* get_panel_param(int argc, char * argv[])
         while (1){
                 static struct option long_options[] ={
                         {"db",required_argument,0,OPT_SQLITE_DB},
-                        {"id",required_argument,0, OPT_PATIENT_ID},                 
+                        {"id",required_argument,0, OPT_PATIENT_ID},
+                        {"out",required_argument,0, OPT_OUTFILE},
                         {"help",0,0,'h'},
                         {0, 0, 0, 0}
                 };
@@ -178,6 +182,9 @@ struct parameters* get_panel_param(int argc, char * argv[])
 
                 switch(c) {
                 case 0:
+                        break;
+                case OPT_OUTFILE:
+                        param->outfile = optarg;
                         break;
                 case OPT_PATIENT_ID:
                         param->patient_id = optarg;
@@ -204,6 +211,7 @@ struct parameters* get_panel_param(int argc, char * argv[])
         }
         ASSERT(param->local_sqlite_database_name != NULL,"No database.");
         ASSERT(param->patient_id != NULL,"No patient.");
+        ASSERT(param->outfile != NULL,"No output filename.");
 
         
         

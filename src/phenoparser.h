@@ -30,7 +30,8 @@ struct parameters{
         char* omimkey;
         char* patient_id;
         char* phenofile;
-        
+
+        char* outfile;
 };
 
 struct OMIM_list{

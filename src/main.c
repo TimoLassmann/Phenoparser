@@ -62,14 +62,22 @@ ERROR:
 
 int make_table_output(struct parameters* param)
 {
+        FILE* fptr = NULL;
         sqlite3 *sqlite_db = NULL;
         int rc;          
 
+        sqlite3_stmt *pStmt;
         char* buffer = NULL;
         int buffer_len = 1024;     
  
         ASSERT(param != NULL, "No parameters.");
+        ASSERT(param->outfile != NULL ,"No outfile.");
 
+
+        RUNP(fptr = fopen(param->outfile,"w"));
+
+        
+        
         MMALLOC(buffer,sizeof(char) * buffer_len);
        
         snprintf(buffer,buffer_len,"SELECT patient_id AS ID, patient.DiseaseSearch AS DISEASE,  MIMgene.phenotypeMimNumber AS MIMnumber, diseaseMIM.phenotypeDescription AS DESC,  MIMgene.gene AS GENE  FROM  patient INNER JOIN diseaseMIM ON diseaseMIM.DiseaseSearch = patient.DiseaseSearch INNER JOIN MIMgene ON MIMgene.phenotypeMimNumber = diseaseMIM.phenotypeMimNumber   WHERE patient_id == \"%s\";",param->patient_id);
@@ -81,21 +89,66 @@ int make_table_output(struct parameters* param)
                 exit(1);
         }
 
-
-        rc = sqlite3_exec(sqlite_db, buffer, callback, 0, 0);
-    
-        if (rc != SQLITE_OK ) {
-                fprintf(stderr, "Failed to select data\n");
-        } 
-    
-        rc = sqlite3_close(sqlite_db);
+        rc = sqlite3_prepare(sqlite_db, buffer, -1, &pStmt, 0);
         if( rc!=SQLITE_OK ){
-                fprintf(stderr, "sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
+                fprintf(stderr, "sqlite3_prepare failed: %s\n", sqlite3_errmsg(sqlite_db));
                 sqlite3_close(sqlite_db);
                 exit(1);
         }
+	
+        while ( sqlite3_step(pStmt) !=SQLITE_DONE) {
+                int i;
+                int num_cols = sqlite3_column_count(pStmt);
+		
+                for (i = 0; i < num_cols; i++)
+                {
+                        if(i){
+                                fprintf(fptr,",");
+                        }
+                        switch (sqlite3_column_type(pStmt, i))
+                        {
+                        case (SQLITE3_TEXT):
+                                fprintf(fptr,"%s", sqlite3_column_text(pStmt, i));
+                                break;
+                        case (SQLITE_INTEGER):
+                                fprintf(fptr,"%d", sqlite3_column_int(pStmt, i));
+                                break;
+                        case (SQLITE_FLOAT):
+                                fprintf(fptr,"%g", sqlite3_column_double(pStmt, i));
+                                break;
+                        default:
+                                break;
+                        }
+                }
+                fprintf(fptr,"\n");
+        }
+
+        
+        sqlite3_finalize(pStmt);
+        /*
+          rc = sqlite3_exec(sqlite_db, buffer, callback, 0, 0);
+    
+          if (rc != SQLITE_OK ) {
+          fprintf(stderr, "Failed to select data\n");
+          }*/ 
+    
+        rc = sqlite3_close(sqlite_db);
+        if( rc!=SQLITE_OK ){
+                ERROR_MSG("sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
+
+        }
+        fclose(fptr);
         return OK;
 ERROR:
+        if(fptr){
+               fclose(fptr); 
+        }
+        if(sqlite_db){
+                rc = sqlite3_close(sqlite_db);
+                if( rc!=SQLITE_OK ){
+                        fprintf(stderr, "sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
+                }
+        }
         return FAIL;
 }
 
