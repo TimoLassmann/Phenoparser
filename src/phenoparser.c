@@ -38,7 +38,10 @@
  
 #include <expat.h>
 #include <curl/curl.h>
- 
+#include <sqlite3.h>
+
+#include "tldevel.h"
+
 struct MemoryStruct {
         char *memory;
         size_t size;
@@ -139,7 +142,7 @@ int main(void)
         /* Initialize a libcurl handle. */
         curl_global_init(CURL_GLOBAL_ALL ^ CURL_GLOBAL_SSL);
         curl_handle = curl_easy_init();
-        curl_easy_setopt(curl_handle, CURLOPT_URL,"http://api.omim.org/api/entry?&mimNumber=226700&apiKey=odBmVLYxRLO11WyREKlwyw&include=geneMap");
+        curl_easy_setopt(curl_handle, CURLOPT_URL,"http://api.omim.org/api/entry/search?search=%22epidermolysis%20bullosa%22+AND+gm_phenotype_exists:true&include=geneMap&apiKey=odBmVLYxRLO11WyREKlwyw");
         curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, parseStreamCallback);
         curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)parser);
  
@@ -167,12 +170,12 @@ int main(void)
         /* Clean up. */
         int i;
         for(i = 0; i < state.lines;i++){
-                fprintf(stdout,"%s",state.data[i]);
+                fprintf(stdout,"%s\n",state.data[i]);
         }
         free(state.characters.memory);
         XML_ParserFree(parser);
         curl_easy_cleanup(curl_handle);
         curl_global_cleanup();
- 
+        
         return 0;
 }

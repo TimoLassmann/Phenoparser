@@ -1,4 +1,4 @@
-AC_INIT([singleCellsim], [m4_esyscmd_s([git describe --always])])
+AC_INIT([phenoparser], [m4_esyscmd_s([git describe --always])])
 AC_CONFIG_AUX_DIR([.])
 AM_INIT_AUTOMAKE
 # Checks for programs.
@@ -30,6 +30,9 @@ AC_SUBST(CURL_LIBS)
 
 AC_CHECK_HEADER([expat.h],, AC_MSG_ERROR([Expat header file is required]))
 AC_CHECK_LIB([expat], [XML_ParseBuffer], , AC_MSG_ERROR([Expat library is required]))
+
+AC_CHECK_LIB([sqlite3], [sqlite3_open_v2], ,[AC_MSG_ERROR( [libsqlite3 required for sqlite data interface])])
+
 
 AC_CHECK_HEADERS([float.h stdint.h stdlib.h string.h unistd.h])
 

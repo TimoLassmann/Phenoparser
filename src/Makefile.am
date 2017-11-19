@@ -13,7 +13,10 @@ AM_CPPFLAGS=${MYINCDIRS}
 
 bin_PROGRAMS = phenoparser
 phenoparser_SOURCES = \
-phenoparser.c
+phenoparser.h \
+main.c \
+user_interface.c
+
 
 phenoparser_LDADD = ${MYLIBDIRS}
 
