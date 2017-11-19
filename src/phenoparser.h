@@ -23,7 +23,6 @@
 #include <curl/curl.h>
 #include <sqlite3.h>
 
-
 #include "tldevel.h"
 
 struct parameters{
@@ -41,22 +40,22 @@ struct OMIM_list{
 };
 
 struct OMIM{
-        char* mimNumber;//	601282
-        char* phenotype;//	Epidermolysis bullosa simplex with muscular dystrophy
-        char* phenotypeMimNumber;//	226670
-        char* phenotypeMappingKey;//	3
-        char* phenotypeInheritance;//	Autosomal recessive
-        char* sequenceID;//	7256
-        char* chromosome;//	8
-        char* chromosomeSymbol;//	8
-        char* chromosomeSort;//	552
-        char* chromosomeLocationStart;//	143915146
-        char* chromosomeLocationEnd;//	143976799
-        char* transcript;//	uc064rfy.1
-        char* cytoLocation;//	8q24
-        char* computedCytoLocation;//	8q24.3
-        char** geneSymbols;//	PLEC1, PLEC, PLTN, EBS1, LGMD2Q, EBSOG, EBSPA, EBSMD, EBSND
-        char* geneInheritance;//	(null)      
+        char* mimNumber;
+        char* phenotype;
+        char* phenotypeMimNumber;
+        char* phenotypeMappingKey;
+        char* phenotypeInheritance;
+        char* sequenceID;
+        char* chromosome;
+        char* chromosomeSymbol;
+        char* chromosomeSort;
+        char* chromosomeLocationStart;
+        char* chromosomeLocationEnd;
+        char* transcript;
+        char* cytoLocation;
+        char* computedCytoLocation;
+        char** geneSymbols;
+        char* geneInheritance;
 };
 
 struct MemoryStruct {

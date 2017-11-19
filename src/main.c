@@ -1,6 +1,5 @@
 #include "phenoparser.h"
 
-
 int check_if_db_exists_otherwise_create(struct parameters* param);
 
 int query_OMIM_and_insert_results(struct parameters* param);
@@ -25,7 +24,6 @@ void free_omim_list(struct OMIM_list* ol);
 
 struct OMIM* init_omim_entry(void);
 void free_omim(struct OMIM* omim);
-
 
 int main (int argc, char * argv[])
 {
@@ -366,10 +364,7 @@ ERROR:
 
 
 /*
-
-  WORKs ! 
-
-
+  Some test queries 
   INSERT INTO patient VALUES ('OTTO', 'epidermolysis bullosa','');
 
   INSERT INTO diseaseMIM VALUES ('epidermolysis bullosa',603576);
@@ -400,30 +395,11 @@ ERROR:
   INNER JOIN MIMgene ON MIMgene.phenotypeMimNumber = diseaseMIM.phenotypeMimNumber 
   WHERE patient_id == "dOTTO";
 
-
   SELECT 
   *
   FROM
   diseaseMIM
   INNER JOIN MIMgene ON MIMgene.phenotypeMimNumber = diseaseMIM.phenotypeMimNumber;
-
-
-
-
-
-
-
-
-  SELECT
-  trackid,
-  tracks.name AS Track,
-  albums.title AS Album,
-  artists.name AS Artist
-  FROM
-  tracks
-  INNER JOIN albums ON albums.albumid = tracks.albumid
-  INNER JOIN artists ON artists.artistid = albums.artistid;
-
 
 */
 
