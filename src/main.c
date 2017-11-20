@@ -1,3 +1,4 @@
+
 #include "phenoparser.h"
 
 int check_if_db_exists_otherwise_create(struct parameters* param);
@@ -16,11 +17,9 @@ int enter_term(struct OMIM_list* ol, char* name,char* value );
 
 int callback(void *NotUsed, int argc, char **argv, char **azColName);
 
-
 struct OMIM_list* init_omim_list(int n);
 int resize_omim_list(struct OMIM_list* ol, int add);
 void free_omim_list(struct OMIM_list* ol);
-
 
 struct OMIM* init_omim_entry(void);
 void free_omim(struct OMIM* omim);
@@ -29,9 +28,7 @@ int remove_comma(char* in);
 
 int main (int argc, char * argv[])
 {
-        struct parameters* param = NULL;
-        
-        
+        struct parameters* param = NULL;       
         if(argc == 1){
                 /* print help */
                 tlog.echo_build_config();
@@ -283,7 +280,7 @@ int search_and_insert_disease(struct parameters* param, char* search_term)
         
         snprintf(buffer,BUFFER_LEN*10,"http://api.omim.org/api/entry/search?search=%s%s%s+AND+gm_phenotype_exists:true&include=geneMap&apiKey=%s","%22",search_term_tmp,"%22", param->omimkey);
         DPRINTF2("%s",buffer);
-        //curl_easy_setopt(curl_handle, CURLOPT_URL,"http://api.omim.org/api/entry/search?search=%22epidermolysis%20bullosa%22+AND+gm_phenotype_exists:true&include=geneMap&apiKey=odBmVLYxRLO11WyREKlwyw");
+        
         curl_easy_setopt(curl_handle, CURLOPT_URL,buffer);
         curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, parseStreamCallback);
         curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)parser);
