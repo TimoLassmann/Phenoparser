@@ -26,6 +26,9 @@ void free_omim(struct OMIM* omim);
 
 int remove_comma(char* in);
 
+
+int get_term_list(struct parameters* param);
+
 int main (int argc, char * argv[])
 {
         struct parameters* param = NULL;       
@@ -43,7 +46,10 @@ int main (int argc, char * argv[])
                 RUN(check_if_db_exists_otherwise_create(param));
 
                 RUN(query_OMIM_and_insert_results(param));
-
+                
+        }else if(strncmp(argv[1],"termlist",8) == 0){
+                RUNP(param = get_termlist_param(argc,argv));
+                RUN(get_term_list(param));
                 
         }else if(strncmp(argv[1],"panel",5) == 0){
                 RUNP(param = get_panel_param(argc,argv));
@@ -52,11 +58,123 @@ int main (int argc, char * argv[])
         }else{
                 ERROR_MSG("Option %s not recognized.",argv[1]);
         }
+
+        LOG_MSG("Done.");
         free_param(param);
         return EXIT_SUCCESS;
 ERROR:        
         free_param(param);
         return EXIT_FAILURE;
+}
+
+int get_term_list(struct parameters* param)
+{
+        char** term_list = NULL;
+        FILE* f_ptr = NULL;
+        char line[LINE_LEN];
+
+        int num_terms = 0;
+        int alloc_numterms = 16;
+        int i,j,c;
+        int pos;
+        
+        ASSERT(param != NULL ,"No param.");
+
+        MMALLOC(term_list,sizeof(char*) * alloc_numterms);
+        for(i = 0; i < alloc_numterms;i++){
+                term_list[i] = NULL;
+                MMALLOC(term_list[i],sizeof(char) * LINE_LEN);
+        }
+        
+        for(i = 0; i < param->num_infiles;i++){
+                if(!my_file_exists(param->infile[i])){
+                        WARNING_MSG("File: %s does not exist!", param->infile[i]);
+                }else{
+                        RUNP(f_ptr = fopen(param->infile[i],"r"));
+                        
+                        while(fgets(line, LINE_LEN, f_ptr)){
+                                DPRINTF3("%s",line);
+                                pos = 0;
+                                for(j = 0;j < LINE_LEN;j++){
+                                        DPRINTF3("%c",line[j]);
+                                        if(line[j] == ';'){
+                                                term_list[num_terms][pos] = 0;
+                                                DPRINTF2("%s",term_list[num_terms]);
+                                                
+                                                pos = 0;
+                                                num_terms++;
+                                                if(num_terms == alloc_numterms){
+                                                        alloc_numterms = alloc_numterms << 1;
+                                                        DPRINTF3("Realloc:%d",alloc_numterms);
+                                                        MREALLOC(term_list,sizeof(char*) * alloc_numterms);
+                                                        for(c = num_terms;c < alloc_numterms;c++){
+                                                                term_list[c] = NULL;
+                                                                MMALLOC(term_list[c],sizeof(char) * LINE_LEN);  
+                                                        }
+                                                }
+                                        }else if(iscntrl(line[j])){
+                                                term_list[num_terms][pos] = 0;
+                                                 DPRINTF2("%s",term_list[num_terms]);
+                                                 
+                                                pos = 0;
+                                                num_terms++;
+                                                if(num_terms == alloc_numterms){
+                                                        alloc_numterms = alloc_numterms << 1;
+                                                        DPRINTF3("Realloc:%d",alloc_numterms);
+                                                        MREALLOC(term_list,sizeof(char*) * alloc_numterms);
+                                                         for(c = num_terms;c < alloc_numterms;c++){
+                                                                term_list[c] = NULL;
+                                                                MMALLOC(term_list[c],sizeof(char) * LINE_LEN);  
+                                                        }
+                                                }
+                                                break;
+                                        }else{
+                                                term_list[num_terms][pos] = line[j];
+                                                pos++;
+                                        }
+                                }
+                                
+                        }
+                        fclose(f_ptr);
+                }
+        }
+
+        if(param->outfile){
+                LOG_MSG("Writing to file: %s.",param->outfile);
+                if(my_file_exists(param->outfile)){
+                        WARNING_MSG("File: %s do exist; will overwrite!",param->outfile);
+                }
+                RUNP(f_ptr = fopen(param->outfile,"w"));
+        }else{
+                f_ptr = stdout;
+        }
+        
+        for(i = 0 ; i< num_terms;i++){
+                fprintf(f_ptr,"%s\n",term_list[i]);
+                     
+                      
+        }
+        if(param->outfile){
+                fclose(f_ptr);
+        }
+        for(i = 0; i < alloc_numterms;i++){
+                MFREE(term_list[i]);
+        }
+        MFREE(term_list);
+
+        
+        return OK;
+ERROR:
+        if(f_ptr){
+                fclose(f_ptr);
+        }
+        if(term_list){
+                for(i = 0; i < alloc_numterms;i++){
+                        MFREE(term_list[i]);
+                }
+                MFREE(term_list);
+        }
+        return FAIL;
 }
 
 int make_table_output(struct parameters* param)

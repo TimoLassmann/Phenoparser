@@ -32,6 +32,8 @@ struct parameters{
         char* phenofile;
 
         char* outfile;
+        char** infile;
+        int num_infiles;
 };
 
 struct OMIM_list{
@@ -79,8 +81,9 @@ struct ParserStruct {
 int print_global_help(int argc, char * argv[]);
 struct parameters* get_panel_param(int argc, char * argv[]);
 
-
+struct parameters* get_termlist_param(int argc, char * argv[]);
 struct parameters* get_insert_param(int argc, char * argv[]);
+
 
 void free_param(struct parameters* param);
 
