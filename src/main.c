@@ -89,7 +89,6 @@ int read_phenolyzer_output(struct parameters* param)
 {
         FILE* f_ptr = NULL;
         char line[LINE_LEN];
-        int seed_list = -1;
         int line_num = 1;
         int r;
 
@@ -371,7 +370,7 @@ int make_table_output(struct parameters* param)
         
        
        
-        snprintf(buffer,buffer_len,"SELECT * FROM  phenolyzer   WHERE patient_id == \"%s\";",param->patient_id);
+        snprintf(buffer,buffer_len,"SELECT * FROM  phenolyzer   WHERE patient_id == \"%s\" ORDER BY score DESC;",param->patient_id);
 
 
         rc = sqlite3_prepare(sqlite_db, buffer, -1, &pStmt, 0);
