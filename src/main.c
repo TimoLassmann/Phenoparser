@@ -178,6 +178,10 @@ ERROR:
 
 int get_term_list(struct parameters* param)
 {
+        char buffer[BUFFER_LEN*10];
+        sqlite3 *sqlite_db = NULL;
+        int rc;          
+
         char** term_list = NULL;
         FILE* f_ptr = NULL;
         char line[LINE_LEN];
@@ -188,6 +192,7 @@ int get_term_list(struct parameters* param)
         int pos;
         
         ASSERT(param != NULL ,"No param.");
+        ASSERT(param->local_sqlite_database_name != NULL,"No sqlite database name given.");
 
         MMALLOC(term_list,sizeof(char*) * alloc_numterms);
         for(i = 0; i < alloc_numterms;i++){
@@ -266,6 +271,32 @@ int get_term_list(struct parameters* param)
         if(param->outfile){
                 fclose(f_ptr);
         }
+
+        /* Insert into mysql databas */
+        /* Don't need new table - just insert into patient */
+ 
+        rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
+        if(rc!=SQLITE_OK ){
+                ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
+        }
+
+        for(i = 0 ; i< num_terms;i++){
+                snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE INTO patient  VALUES ('%s','%s');",param->patient_id,term_list[i]);
+                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+                if( rc!=SQLITE_OK ){
+                        LOG_MSG("try:%s",buffer);            
+                        ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
+                }        	
+        
+        }
+  
+          rc = sqlite3_close(sqlite_db);
+        if( rc!=SQLITE_OK ){
+                ERROR_MSG("sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
+
+        }
+
+
         for(i = 0; i < alloc_numterms;i++){
                 MFREE(term_list[i]);
         }
@@ -409,7 +440,57 @@ int make_table_output(struct parameters* param)
 
         
         sqlite3_finalize(pStmt);
-    
+
+
+        /* write out table with terms used...  */
+        // Print Phenolyzer outpuit...
+        snprintf(buffer,buffer_len,"%s_terms.csv",param->outfile);
+
+        RUNP(fptr = fopen(buffer,"w"));
+
+        
+        
+       
+       
+        snprintf(buffer,buffer_len,"SELECT * FROM  patient  WHERE patient_id == \"%s\";",param->patient_id);
+
+
+        rc = sqlite3_prepare(sqlite_db, buffer, -1, &pStmt, 0);
+        if( rc!=SQLITE_OK ){
+                fprintf(stderr, "sqlite3_prepare failed: %s\n", sqlite3_errmsg(sqlite_db));
+                sqlite3_close(sqlite_db);
+                exit(1);
+        }
+	
+        while ( sqlite3_step(pStmt) !=SQLITE_DONE) {
+                int i;
+                int num_cols = sqlite3_column_count(pStmt);
+		
+                for (i = 0; i < num_cols; i++)
+                {
+                        if(i){
+                                fprintf(fptr,",");
+                        }
+                        switch (sqlite3_column_type(pStmt, i))
+                        {
+                        case (SQLITE3_TEXT):
+                                fprintf(fptr,"%s", sqlite3_column_text(pStmt, i));
+                                break;
+                        case (SQLITE_INTEGER):
+                                fprintf(fptr,"%d", sqlite3_column_int(pStmt, i));
+                                break;
+                        case (SQLITE_FLOAT):
+                                fprintf(fptr,"%g", sqlite3_column_double(pStmt, i));
+                                break;
+                        default:
+                                break;
+                        }
+                }
+                fprintf(fptr,"\n");
+        }
+
+        
+        sqlite3_finalize(pStmt);
         rc = sqlite3_close(sqlite_db);
         if( rc!=SQLITE_OK ){
                 ERROR_MSG("sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
