@@ -83,7 +83,7 @@ struct parameters* get_panel_param(int argc, char * argv[]);
 
 struct parameters* get_termlist_param(int argc, char * argv[]);
 struct parameters* get_insert_param(int argc, char * argv[]);
-
+struct parameters* get_readphe_param(int argc, char * argv[]);
 
 void free_param(struct parameters* param);
 

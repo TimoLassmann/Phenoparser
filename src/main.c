@@ -1,12 +1,21 @@
 
 #include "phenoparser.h"
 
+#define str(x)          # x
+#define xstr(x)         str(x)
+
+
+
+
 int check_if_db_exists_otherwise_create(struct parameters* param);
 
 int query_OMIM_and_insert_results(struct parameters* param);
 int search_and_insert_disease(struct parameters* param, char* search_term);
 
 int make_table_output(struct parameters* param);
+
+int read_phenolyzer_output(struct parameters* param);
+
 
 static void startElement(void *userData, const XML_Char *name, const XML_Char **atts);
 static void characterDataHandler(void *userData, const XML_Char *s, int len);
@@ -50,6 +59,13 @@ int main (int argc, char * argv[])
         }else if(strncmp(argv[1],"termlist",8) == 0){
                 RUNP(param = get_termlist_param(argc,argv));
                 RUN(get_term_list(param));
+        }else if(strncmp(argv[1],"readphe",7) == 0){
+                RUNP(param = get_readphe_param(argc,argv));
+                /* create output structure ...  */
+                RUN(check_if_db_exists_otherwise_create(param));
+                
+                RUN(read_phenolyzer_output(param));
+                
                 
         }else if(strncmp(argv[1],"panel",5) == 0){
                 RUNP(param = get_panel_param(argc,argv));
@@ -65,6 +81,100 @@ int main (int argc, char * argv[])
 ERROR:        
         free_param(param);
         return EXIT_FAILURE;
+}
+
+
+
+int read_phenolyzer_output(struct parameters* param)
+{
+        FILE* f_ptr = NULL;
+        char line[LINE_LEN];
+        int seed_list = -1;
+        int line_num = 1;
+        int r;
+
+        sqlite3 *sqlite_db = NULL;
+        int rc;   
+        char buffer[BUFFER_LEN*10];
+
+        
+        int Rank;
+        char Gene[BUFFER_LEN];
+        int Id;
+        double Score;
+        char Status[BUFFER_LEN];
+
+        
+        ASSERT(param != NULL ,"No param.");
+
+
+        rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
+        if(rc!=SQLITE_OK ){
+                ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
+        }
+        
+
+        if(!my_file_exists(param->phenofile)){
+                ERROR_MSG("File: %s does not exist!",param->phenofile);
+        }
+        
+        RUNP(f_ptr = fopen(param->phenofile,"r"));
+
+        // SEED LIST looks like this: 
+        //Rank	Gene	ID	Score
+        // 1 FGD1	2245	1
+        // 2 UBE3A	7337	0.02885
+
+        // FINAL list (I presume expanded like this:
+        //Rank	Gene	ID	Score	Status
+        //1	FGD1	2245	1	SeedGene
+        //2	ELMO1	9844	0.06035	Predicted
+        //3	PIKFYVE	200576	0.05363	Predicted
+        //4	FGD3	89846	0.05362	Predicted
+       
+        line_num = 1;
+        while(fgets(line, LINE_LEN, f_ptr)){
+                if(line_num> 1){
+                        r = sscanf(line,"%d %"xstr(BUFFER_LEN)"s %d %lf %"xstr(BUFFER_LEN)"s", &Rank, Gene, &Id,&Score,Status);
+                        if(r == 4){
+                                Status[0] = 'N';
+                                Status[1] = 'A';
+                                Status[2] = 0;
+                                
+                        }
+                        
+                        DPRINTF3("%s%d\t%s\t%d\t%e\t%s\n",line,Rank,Gene,Id,Score,Status);
+                        if(r != 4 && r != 5 ){
+                                ERROR_MSG("Problem reading (%d): %s",r,line);
+                        }
+
+
+
+                        /* CREATE TABLE phenolyzer(patient_id TEXT NOT NULL,gene TEXT NOT NULL,identifier INT,score REAL, status  unique (patient_id,gene);  */
+                        if(Rank <= 1000){
+                                snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE INTO phenolyzer VALUES ('%s','%s','%d','%e','%s');",param->patient_id,Gene,Id,Score,Status );
+                                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+                                if( rc!=SQLITE_OK ){
+                                        LOG_MSG("try:%s",buffer);            
+                                        ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
+                                }
+                        }
+
+
+        
+                        //}
+                        
+                        //sscanf( dtm, "%s %s %d  %d", weekday, month, &day, &year );
+                }
+
+                line_num++;
+        }
+        fclose(f_ptr);
+        rc = sqlite3_close(sqlite_db);
+        
+        return OK;
+ERROR:
+        return FAIL;
 }
 
 int get_term_list(struct parameters* param)
@@ -190,12 +300,14 @@ int make_table_output(struct parameters* param)
         ASSERT(param != NULL, "No parameters.");
         ASSERT(param->outfile != NULL ,"No outfile.");
 
-
-        RUNP(fptr = fopen(param->outfile,"w"));
-
-        
-        
         MMALLOC(buffer,sizeof(char) * buffer_len);
+
+        snprintf(buffer,buffer_len,"%s_omim.csv",param->outfile);
+        RUNP(fptr = fopen(buffer,"w"));
+
+        
+        
+       
        
         snprintf(buffer,buffer_len,"SELECT patient_id AS ID, patient.DiseaseSearch AS DISEASE,  MIMgene.phenotypeMimNumber AS MIMnumber, diseaseMIM.phenotypeDescription AS DESC,  MIMgene.gene AS GENE  FROM  patient INNER JOIN diseaseMIM ON diseaseMIM.DiseaseSearch = patient.DiseaseSearch INNER JOIN MIMgene ON MIMgene.phenotypeMimNumber = diseaseMIM.phenotypeMimNumber   WHERE patient_id == \"%s\";",param->patient_id);
 
@@ -242,12 +354,62 @@ int make_table_output(struct parameters* param)
 
         
         sqlite3_finalize(pStmt);
+        fclose(fptr);
         /*
           rc = sqlite3_exec(sqlite_db, buffer, callback, 0, 0);
     
           if (rc != SQLITE_OK ) {
           fprintf(stderr, "Failed to select data\n");
-          }*/ 
+          }*/
+
+        // Print Phenolyzer outpuit...
+        snprintf(buffer,buffer_len,"%s_phenolyzer.csv",param->outfile);
+
+        RUNP(fptr = fopen(buffer,"w"));
+
+        
+        
+       
+       
+        snprintf(buffer,buffer_len,"SELECT * FROM  phenolyzer   WHERE patient_id == \"%s\";",param->patient_id);
+
+
+        rc = sqlite3_prepare(sqlite_db, buffer, -1, &pStmt, 0);
+        if( rc!=SQLITE_OK ){
+                fprintf(stderr, "sqlite3_prepare failed: %s\n", sqlite3_errmsg(sqlite_db));
+                sqlite3_close(sqlite_db);
+                exit(1);
+        }
+	
+        while ( sqlite3_step(pStmt) !=SQLITE_DONE) {
+                int i;
+                int num_cols = sqlite3_column_count(pStmt);
+		
+                for (i = 0; i < num_cols; i++)
+                {
+                        if(i){
+                                fprintf(fptr,",");
+                        }
+                        switch (sqlite3_column_type(pStmt, i))
+                        {
+                        case (SQLITE3_TEXT):
+                                fprintf(fptr,"%s", sqlite3_column_text(pStmt, i));
+                                break;
+                        case (SQLITE_INTEGER):
+                                fprintf(fptr,"%d", sqlite3_column_int(pStmt, i));
+                                break;
+                        case (SQLITE_FLOAT):
+                                fprintf(fptr,"%g", sqlite3_column_double(pStmt, i));
+                                break;
+                        default:
+                                break;
+                        }
+                }
+                fprintf(fptr,"\n");
+        }
+
+        
+        sqlite3_finalize(pStmt);
     
         rc = sqlite3_close(sqlite_db);
         if( rc!=SQLITE_OK ){
@@ -255,16 +417,20 @@ int make_table_output(struct parameters* param)
 
         }
         fclose(fptr);
+        MFREE(buffer);
         return OK;
 ERROR:
         if(fptr){
-               fclose(fptr); 
+                fclose(fptr); 
         }
         if(sqlite_db){
                 rc = sqlite3_close(sqlite_db);
                 if( rc!=SQLITE_OK ){
                         fprintf(stderr, "sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }
+        }
+        if(buffer){
+                MFREE(buffer);
         }
         return FAIL;
 }
@@ -511,6 +677,15 @@ int check_if_db_exists_otherwise_create(struct parameters* param)
                 if( rc!=SQLITE_OK ){
                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }
+
+                DPRINTF2("Creating table: Phenolyzer\n");
+                snprintf(buffer,BUFFER_LEN,"CREATE TABLE phenolyzer(patient_id TEXT NOT NULL,gene TEXT NOT NULL,identifier INT,score REAL,status TEXT NOT NULL, unique (patient_id,gene));"); 
+
+                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+                if( rc!=SQLITE_OK ){
+                        ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
+                }
+                
                 
                 rc = sqlite3_close(sqlite_db);
                 if( rc!=SQLITE_OK ){
