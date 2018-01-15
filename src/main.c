@@ -545,7 +545,7 @@ int callback(void *NotUsed, int argc, char **argv, char **azColName)
 }
 
 
-int query_OMIM_and_insert_results(struct parameters* param)
+int query_omim_and_insert_results(struct parameters* param)
 {
         FILE* fptr = NULL;
         char buffer[BUFFER_LEN];
