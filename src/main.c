@@ -9,7 +9,7 @@
 
 int check_if_db_exists_otherwise_create(struct parameters* param);
 
-int query_OMIM_and_insert_results(struct parameters* param);
+int query_omim_and_insert_results(struct parameters* param);
 int search_and_insert_disease(struct parameters* param, char* search_term);
 
 int make_table_output(struct parameters* param);
@@ -54,7 +54,7 @@ int main (int argc, char * argv[])
                 /* create output structure ...  */
                 RUN(check_if_db_exists_otherwise_create(param));
 
-                RUN(query_OMIM_and_insert_results(param));
+                RUN(query_omim_and_insert_results(param));
                 
         }else if(strncmp(argv[1],"termlist",8) == 0){
                 RUNP(param = get_termlist_param(argc,argv));
