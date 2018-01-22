@@ -131,7 +131,7 @@
   Here are the various scripts I use for the pipeline... 
 ** Convenience library
    This file contains some functions I regularly use:
-   #+BEGIN_SRC sh :tangle tlbashlib.sh :exports code
+   #+BEGIN_SRC sh :tangle tlbashlib.sh :exports code 
 
 
      . /etc/init.d/functions
@@ -219,8 +219,7 @@
 
    And here is the script itself:
 
-   #+BEGIN_SRC sh :tangle run_pre_merge.sh :exports code
-     #!/usr/bin/env bash
+   #+BEGIN_SRC sh :tangle run_pre_merge.sh :exports code :shebang "#!/usr/bin/env bash"
 
      . ~/code/sng/scripts/tlbashlib.sh
 
@@ -609,7 +608,7 @@ EOF
    #+END_SRC
 
    Creates a new directory.
-   #+BEGIN_SRC sh :tangle run_pre_merge.sh :exports code
+   #+BEGIN_SRC sh :tangle run_pre_merge.sh :exports code 
 
      function make_working_directory()
      {
