@@ -18,6 +18,16 @@ PKG_CHECK_MODULES([curl], [libcurl],,
 AC_SUBST(CURL_CFLAGS)
 AC_SUBST(CURL_LIBS)
 
+
+
+AC_CHECK_PROG(HAVE_EMACS, emacs, true, false)
+
+AM_CONDITIONAL(HAVE_EMACS,$HAVE_EMACS)
+
+AC_MSG_CHECKING([whether emacs is present ])
+AC_MSG_RESULT($HAVE_EMACS)
+
+
 AC_CHECK_LIB([curl], [curl_easy_init],,[AC_MSG_ERROR([libcurl required!])])
 AC_CHECK_LIB([curl], [curl_easy_escape],,[AC_MSG_ERROR([libcurl required!])])
 AC_CHECK_LIB([curl], [curl_easy_setopt],,[AC_MSG_ERROR([libcurl required!])])
@@ -48,7 +58,7 @@ AC_FUNC_REALLOC
 AC_CHECK_FUNCS([getcwd mkdir pow sqrt])
 
 
-AC_CONFIG_FILES([Makefile src/Makefile])
+
 
 
 
@@ -115,6 +125,12 @@ AC_MSG_RESULT($opt_valgrind_tests)
 ac_configure_args="$ac_configure_args PACKAGE_VERSION=$PACKAGE_VERSION   PACKAGE_NAME=$PACKAGE_NAME"
 
 AC_CONFIG_SUBDIRS([tldevel])
+
+AC_CONFIG_FILES([Makefile src/Makefile scripts/Makefile])
+
+if test $HAVE_EMACS = "false"; then
+AC_MSG_WARN([*** emacs not found, pipeline scripts will not be tangled!])
+fi
 
 AC_OUTPUT
 

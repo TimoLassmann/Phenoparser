@@ -129,11 +129,34 @@
 * Code
 
   Here are the various scripts I use for the pipeline... 
+
+** Setting paths 
+
+   The =$PATH= variable has to contain the gemini path: 
+   
+   #+BEGIN_EXAMPLE sh
+   PATH=$PATH:~/gemini/anaconda/bin
+   #+END_EXAMPLE
+
+   and all shell script have to he reachable: 
+
+   #+BEGIN_EXAMPLE sh
+   PATH=$PATH:~/local_install/scripts
+   #+END_EXAMPLE
+   
 ** Convenience library
    This file contains some functions I regularly use:
-   #+BEGIN_SRC sh :tangle tlbashlib.sh :exports code 
+   
+   #+NAME: pathvar
+   #+BEGIN_SRC sh :exports code
+     export PATH=$PATH:~/gemini/anaconda/bin
+     export PATH=$PATH:~/bin
+   #+END_SRC
 
+   #+NAME: tlib
+   #+BEGIN_SRC sh :tangle tlbashlib.sh :exports code :noweb yes
 
+     <<pathvar>>
      . /etc/init.d/functions
 
      step() {
@@ -219,17 +242,16 @@
 
    And here is the script itself:
 
-   #+BEGIN_SRC sh :tangle run_pre_merge.sh :exports code :shebang "#!/usr/bin/env bash"
-
-     . ~/code/sng/scripts/tlbashlib.sh
+   #+BEGIN_SRC sh :tangle run_pre_merge.sh :exports code :shebang "#!/usr/bin/env bash" :noweb yes
+     <<tlib>>
 
      pwd=$(pwd)
 
      function usage()
      {
-cat <<EOF
-usage: $0  -i <inputdir>  -l <logfile>
-EOF
+         cat <<EOF
+     usage: $0  -i <inputdir>  -l <logfile>
+     EOF
          exit 1;
      }
    #+END_SRC
@@ -242,11 +264,7 @@ EOF
 
 
      main() {
-
-         PATH=$PATH:~/gemini/anaconda/bin
-
-         PATH=$PATH:~/code/sng/scripts
-
+         <<pathvar>>
          LOG_STEPS=
     
          INDIR=
@@ -682,66 +700,61 @@ EOF
 
    And here is the actual script: 
 
-   #+BEGIN_SRC sh :tangle build_gemini.sh :exports code :shebang "#!/usr/bin/env bash"
+   #+BEGIN_SRC sh :tangle build_gemini.sh :exports code :shebang "#!/usr/bin/env bash" :noweb yes
+<<tlib>>
 
-     . ~/code/sng/scripts/tlbashlib.sh
+          pwd=$(pwd)
 
-     pwd=$(pwd)
+          function usage()
+          {
+     cat <<EOF
+     usage: $0  -p <platform> -d <database> -l <logfile>
+     EOF
+              exit 1;
+          }
 
-     function usage()
-     {
-cat <<EOF
-usage: $0  -p <platform> -d <database> -l <logfile>
-EOF
-         exit 1;
-     }
+          main(){
+              <<pathvar>>
+         
+              LOG_STEPS=
+              GEMINI_DATABASE=
+              PLATFORM=
+         
+              NUM_THREADS=6
+         
+         
+              while getopts p:d:t:l: opt
+              do
+                  case ${opt} in
+                      d) GEMINI_DATABASE=${OPTARG};;
+                      p) PLATFORM=${OPTARG};;
+                      t) NUM_THREADS=${OPTARG};;
+                      l) LOG_STEPS=${OPTARG};;
+                 
+                      ,*) usage;;
+                  esac
+              done
+         
+              if [ "${GEMINI_DATABASE}" = "" ]; then usage; fi
+              if [ "${PLATFORM}" = "" ]; then usage; fi
+         
+              samplelist=$(cat sample_info.txt |  grep $PLATFORM | cut -f 1);
+         
+              step "Merge all vcf files"    
+              try bcftools merge ${samplelist[*]} > $pwd/tmp/combined_$PLATFORM.vcf
+              next
+         
+              step "Run VT and VEP on combined"
+              pipeline $pwd/tmp/combined_$PLATFORM.vcf;
+              next
+         
+              step "Load into gemini";
+              try load_into_gemini  $pwd/tmp combined_$PLATFORM.d.n.vep.vcf.gz
+              next 
 
-
-     main(){
-    
-         PATH=$PATH:~/gemini/anaconda/bin
-    
-         PATH=$PATH:~/code/sng/scripts
-    
-         LOG_STEPS=
-         GEMINI_DATABASE=
-         PLATFORM=
-    
-         NUM_THREADS=6
-    
-    
-         while getopts p:d:t:l: opt
-         do
-             case ${opt} in
-                 d) GEMINI_DATABASE=${OPTARG};;
-                 p) PLATFORM=${OPTARG};;
-                 t) NUM_THREADS=${OPTARG};;
-                 l) LOG_STEPS=${OPTARG};;
-            
-                 ,*) usage;;
-             esac
-         done
-    
-         if [ "${GEMINI_DATABASE}" = "" ]; then usage; fi
-         if [ "${PLATFORM}" = "" ]; then usage; fi
-    
-         samplelist=$(cat sample_info.txt |  grep $PLATFORM | cut -f 1);
-    
-         step "Merge all vcf files"    
-         try bcftools merge ${samplelist[*]} > $pwd/tmp/combined_$PLATFORM.vcf
-         next
-    
-         step "Run VT and VEP on combined"
-         pipeline $pwd/tmp/combined_$PLATFORM.vcf;
-         next
-    
-         step "Load into gemini";
-         try load_into_gemini  $pwd/tmp combined_$PLATFORM.d.n.vep.vcf.gz
-         next 
-
-    
-         echo "Done!"
-     }
+         
+              echo "Done!"
+          }
    #+END_SRC
 
    The vt pipeline 
@@ -987,11 +1000,9 @@ EOF
 
    And here is the actual script: 
 
-   #+BEGIN_SRC sh :tangle make_omim_database.sh :exports code :shebang "#!/usr/bin/env bash"
+   #+BEGIN_SRC sh :tangle make_omim_database.sh :exports code :shebang "#!/usr/bin/env bash" :noweb yes
 
-     PATH=$PATH:/usr/local/bin
-
-     . ~/code/sng/scripts/tlbashlib.sh
+     <<tlib>>
 
      pwd=$(pwd)
 
@@ -1005,11 +1016,7 @@ EOF
 
 
      main() {
-
-         PATH=$PATH:~/gemini/anaconda/bin
-
-         PATH=$PATH:~/code/sng/scripts
-         PATH=$PATH:/usr/local/bin
+         <<pathvar>>
          LOG_STEPS=
          INDIR=
          DATABASE=
@@ -1115,10 +1122,10 @@ EOF
 
    And here is the actual script: 
 
-   #+BEGIN_SRC sh :tangle make_extended_phenolyzer_database.sh  :exports code :shebang "#!/usr/bin/env bash"
-
-               . ~/code/sng/scripts/tlbashlib.sh
-
+   #+BEGIN_SRC sh :tangle make_extended_phenolyzer_database.sh  :exports code :shebang "#!/usr/bin/env bash" :noweb yes
+        
+      <<tlib>>
+        
                pwd=$(pwd)
 
                function usage()
@@ -1130,10 +1137,7 @@ EOF
                }
 
                main() {
-                   PATH=$PATH:~/gemini/anaconda/bin
-                   PATH=$PATH:~/code/sng/scripts
-                   PATH=$PATH:/usr/local/bin
-
+                   <<pathvar>>
                    LOG_STEPS=
                    OUT_DATABASE=
                    INDIR=
@@ -1262,9 +1266,9 @@ variants etc...
 
     And here is the actual script: 
 
-    #+BEGIN_SRC sh :tangle create_variant_report.sh  :exports code :shebang "#!/usr/bin/env bash"
+    #+BEGIN_SRC sh :tangle create_variant_report.sh  :exports code :shebang "#!/usr/bin/env bash" :noweb yes
 
-      . ~/code/sng/scripts/tlbashlib.sh
+<<tlib>>
 
       pwd=$(pwd)
 
@@ -1277,10 +1281,7 @@ EOF
       }
 
       main() {
-
-          PATH=$PATH:~/gemini/anaconda/bin
-          PATH=$PATH:~/code/sng/scripts
-          PATH=$PATH:/usr/local/bin
+          <<pathvar>>
 
           PATIENT_ID=
           GEMINI_DATABASEPATH=
@@ -1332,162 +1333,201 @@ EOF
 
 
 ***  Master Template 
+     
+     #+BEGIN_SRC R :tangle report_V2_template.Rmd :exports code
+       ---
+           output:
+           html_document:
+           keep_md: true
+       ---
 
-#+BEGIN_SRC R :tangle report_V2_template.Rmd :exports code
----
-output:
-  html_document:
-    keep_md: true
----
+       # Patient report: VARPATIENT_ID
 
-# Patient report: VARPATIENT_ID
+       <style>
+                .main-container { width: 1600px; max-width:1600px;}
+       </style>
 
-<style>
-.main-container { width: 1800px; max-width:1800px;}
-</style>
-
-
-```{r setup, warning = FALSE, message = FALSE, include=FALSE}
-# Load the packages into R
-library(dplyr)
-library(knitr)
-library(DT)
-library(tidyverse)
-```
-
-
-## Extract variants and annotation from gemini
-
-In this step the following thresholds are used:
-
-1. Maximum allele frequency in any population: 0.01
-2. Minimum CADD score 15 OR impact severity HIGH
-
-```{r Gemini, include=TRUE}
-
-try(system("gemini query --header -q 'select chrom, start, end, ref, alt, gene, impact, impact_severity,
- cadd_scaled,polyphen_score,sift_score, clinvar_sig,max_aaf_all,sub_type,
-gts.VARPATIENT_ID, 
-gt_depths.VARPATIENT_ID,
-gt_quals.VARPATIENT_ID,
-gt_ref_depths.VARPATIENT_ID,
-gt_alt_depths.VARPATIENT_ID 
-from variants
- where 
-max_aaf_all < 0.01 AND 
-(cadd_scaled >= 15 OR impact_severity == \"HIGH\")
- ' VARGEMINI_DATABASEPATH --gt-filter \"gt_depths.VARPATIENT_ID > 0\" >> raw_var_table_VARPATIENT_ID.tsv", intern = TRUE, ignore.stderr = TRUE))
-
-```
+       ```{r setup, warning = FALSE, message = FALSE, include=FALSE}
+                # Load the packages into R
+                library(dplyr)
+                library(knitr)
+                library(DT)
+                library(tidyverse)
+                library(knitr)
+                library(kableExtra)
+       ```
 
 
-```{r postGemini, include=FALSE}
+       ## Extract variants and annotation from gemini
 
-df = read_tsv("raw_var_table_VARPATIENT_ID.tsv")
-df = df %>% unite(pos, chrom, start, end)
+       In this step the following thresholds are used:
 
-```
+       1. Maximum allele frequency in any population: 0.01
+       2. Minimum CADD score 15 OR impact severity HIGH
 
+       ```{r Gemini, include=TRUE}
 
-
-```{r Export Phenotype information, include=FALSE}
-
-try(system("phenoparser  panel  --id VARPATIENT_ID --db VAROMIM_DATABASEPATH --out VARPATIENT_ID"))
-
-
-```
-
-## HPO terms and/or suspected diseases 
-
-The table contains all HPO and/or suspected diseases considered when ranking the variants. 
-
-
-
-```{r make term table, echo=FALSE,include=TRUE}
-
-info = file.info("VARPATIENT_ID_terms.csv")
-if(info[1,1] != 0){
-terms = read_csv("VARPATIENT_ID_terms.csv",col_names = FALSE)
-datatable(terms,rownames=TRUE,filter = 'top',options = list(pageLength=50,autoWidth = TRUE,columnDefs = list(list(width = '5px', targets = "_all")))
-)
-
-}
-```
-
-```{r Add OMIM Phenotype information to df , include=FALSE}
-
-info = file.info("VARPATIENT_ID_omim.csv")
-if(info[1,1] != 0){
-  omim = read_csv("VARPATIENT_ID_omim.csv",col_names = FALSE)
-  omim_genes = select(omim, X2,X5)
-  colnames(omim_genes) = c("Omim","gene")
-}else{
-  omim_genes = tibble(Omim = character(), gene = character()) 
-}
-
-df = df %>% left_join(omim_genes, by = "gene")
-
-```
+                try(system("gemini query --header -q 'select chrom, start, end, gene, impact, impact_severity,
+                 cadd_scaled,polyphen_score,sift_score, clinvar_sig,max_aaf_all,sub_type,
+                gts.VARPATIENT_ID, 
+                gt_depths.VARPATIENT_ID,
+                gt_quals.VARPATIENT_ID,
+                gt_ref_depths.VARPATIENT_ID,
+                gt_alt_depths.VARPATIENT_ID 
+                from variants
+                 where 
+                max_aaf_all < 0.01 AND 
+                (cadd_scaled >= 15 OR impact_severity == \"HIGH\")
+                 ' VARGEMINI_DATABASEPATH --gt-filter \"gt_depths.VARPATIENT_ID > 0\" > raw_var_table_VARPATIENT_ID.tsv", intern = TRUE, ignore.stderr = TRUE))
+       ```
 
 
-```{r Add Phenolyzer information to df , include=FALSE}
+       ```{r postGemini, include=FALSE}
 
-info = file.info("VARPATIENT_ID_phenolyzer.csv")
-if(info[1,1] != 0){
-  hpo = read_csv("VARPATIENT_ID_phenolyzer.csv",col_names = FALSE)
-  hpo_genes = select(hpo, X4,X2)
-  colnames(hpo_genes) = c("PhenolyzerScore","gene")
-  
+                df = read_tsv("raw_var_table_VARPATIENT_ID.tsv")
+                df = df %>% unite(pos, chrom, start, end)
 
-}else{
-   hpo_genes  = tibble(PhenolyzerScore = character(), gene = character()) 
-}
+                df = rename(df, Severity = impact_severity)
+                df = rename(df, Poly = polyphen_score)
+                df = rename(df, Sift = sift_score)
 
-df = df %>% left_join(hpo_genes, by = "gene")
+                df = rename(df, GTS = gts.VARPATIENT_ID)
+                df = rename(df, Depth = gt_depths.VARPATIENT_ID)
+                df = rename(df, CallQ = gt_quals.VARPATIENT_ID)
+                df = rename(df, RefD = gt_ref_depths.VARPATIENT_ID)
+                df = rename(df, AltD = gt_alt_depths.VARPATIENT_ID)
 
+                df = df %>% mutate(max_aaf_all = sprintf("%0.1e", max_aaf_all))
+                df = df %>% mutate(CallQ = sprintf("%0.0f",CallQ))
+                
 
-```
+       ```
 
 
 
+       ```{r Export Phenotype information, include=FALSE}
 
-## Ordering of variants
-
-The table is sorted by variants in genes associated with the patient's disease phenotype and then by descending CADD score.
-
-```{R Sorting,include=TRUE}
-
-df <- arrange(df, Omim, desc(PhenolyzerScore), desc(cadd_scaled))
-
-df <- add_column(df , Rank = 1:nrow(df),.before = 1)
-
-```
-
-Write to file...
-
-```{R Write to tsv, include=FALSE}
-
-write.table(df, file = "VARPATIENT_ID_report_V2.tsv", append = FALSE, quote = FALSE, sep = "\t",na = "NA",row.names = FALSE,col.names = TRUE) 
-
-```
-
-```{r, echo=FALSE,include=TRUE}
+                try(system("phenoparser  panel  --id VARPATIENT_ID --db VAROMIM_DATABASEPATH --out VARPATIENT_ID"))
 
 
-datatable(df,rownames=FALSE,filter = 'top',options = list(pageLength=50,autoWidth = TRUE,columnDefs = list(list(width = '5px', targets = "_all")))
-) %>%
-  formatStyle(
-    'impact_severity',
-    backgroundColor = styleEqual(c('HIGH','MED','LOW') , c( 'lightpink', 'lightgreen', 'lightblue')
-    )
-  )
- 
+       ```
+
+       ## HPO terms and/or suspected diseases 
+
+       The table contains all HPO and/or suspected diseases considered when ranking the variants. 
 
 
-```
 
-#+END_SRC
+       ```{r make term table, echo=FALSE,include=TRUE}
 
+                info = file.info("VARPATIENT_ID_terms.csv")
+                if(info[1,1] != 0){
+                terms = read_csv("VARPATIENT_ID_terms.csv",col_names = FALSE)
+                datatable(terms,rownames=TRUE,filter = 'top',options = list(pageLength=50,autoWidth = TRUE,columnDefs = list(list(width = '5px', targets = "_all")))
+                )
+                }
+       ```
+
+       ```{r Add OMIM Phenotype information to df , include=FALSE}
+
+                info = file.info("VARPATIENT_ID_omim.csv")
+                if(info[1,1] != 0){
+                  omim = read_csv("VARPATIENT_ID_omim.csv",col_names = FALSE)
+                  omim_genes = select(omim, X2,X5)
+                  colnames(omim_genes) = c("OmimPanel","gene")
+                  omim_genes = distinct(omim_genes, OmimPanel, gene)
+                }else{
+                  omim_genes = tibble(OmimPanel = character(), gene = character()) 
+                }
+
+                df = df %>% left_join(omim_genes, by = "gene")
+
+       ```
+
+
+       ```{r Add Phenolyzer information to df , include=FALSE}
+
+                info = file.info("VARPATIENT_ID_phenolyzer.csv")
+                if(info[1,1] != 0){
+                  hpo = read_csv("VARPATIENT_ID_phenolyzer.csv",col_names = FALSE)
+                  hpo_genes = select(hpo, X4,X2)
+                  colnames(hpo_genes) = c("PhenolyzerPanel","gene")
+                  hpo_genes = distinct(hpo_genes, PhenolyzerPanel, gene)
+
+                }else{
+                   hpo_genes  = tibble(PhenolyzerPanel = character(), gene = character()) 
+                }
+
+                df = df %>% left_join(hpo_genes, by = "gene")
+
+
+       ```
+
+       ## Ranking of variants
+
+       The table is sorted by variants in genes associated with the patients disease phenotype and then by descending CADD score.
+
+       ```{r Sorting,include=TRUE}
+
+                df <- arrange(df, OmimPanel, desc(PhenolyzerPanel), desc(cadd_scaled))
+
+                df <- add_column(df , Rank = 1:nrow(df),.before = 1)
+
+                df  <- df  %>% select(Rank, pos, GTS, gene, Severity ,cadd_scaled, PhenolyzerPanel,OmimPanel,Depth, CallQ, RefD,AltD, everything())
+                
+
+
+       ```
+
+
+
+       ```{r Write to tsv, include=FALSE}
+
+                write.table(df, file = "VARPATIENT_ID_report_V2.tsv", append = FALSE, quote = FALSE, sep = "\t",na = "NA",row.names = FALSE,col.names = TRUE) 
+
+       ```
+       ## List of candidate variants 
+
+       Legend: 
+
+       ```{r Option table,echo=FALSE, include=TRUE}
+
+       friends_data <- data_frame(
+         Column = c("Rank", "pos", "GTS", "PhenolyzerPanel","OmimPanel"),
+         Description = c("rank of variant after sorting the list according to the criteria above", "genomic coordinates", "genotpye", "contains a score for genes returned by phenolyzer","contain genes associated with the patients disease phenotype"),
+       )          
+       kable(friends_data,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F)
+       ```
+
+       ```{r, echo=FALSE,include=TRUE}
+
+
+
+              button_list <- list(list(extend='colvisGroup', text="Show additional columns", show=c(12:17)),
+                                    list(extend='colvisGroup', text="Hide additional columns", hide=c(12:17))
+                                    )
+
+
+                datatable(df,rownames=FALSE,filter = 'top',extensions = 'Buttons', 
+                options = list(
+                    dom = 'Blfrtip',
+                    buttons =  button_list,
+                    pageLength=25,
+                    autoWidth = FALSE,columnDefs = list(
+                        list(width = '5px', targets = "_all"),
+                        list(visible=FALSE, targets=c(12:17))
+                    )
+                )
+                ) %>%
+                  formatStyle(
+                    'Severity',
+                    backgroundColor = styleEqual(c('HIGH','MED','LOW') , c( 'lightpink', 'lightgreen', 'lightblue')
+                    )
+                  ) 
+       ```
+       End.
+     #+END_SRC
+     
 
 
 *** Create all reports
@@ -1511,8 +1551,8 @@ datatable(df,rownames=FALSE,filter = 'top',options = list(pageLength=50,autoWidt
 
     And here is the actual script: 
 
-    #+BEGIN_SRC sh :tangle create_all_variant_reports.sh  :exports code :shebang "#!/usr/bin/env bash"
-      . ~/code/sng/scripts/tlbashlib.sh
+    #+BEGIN_SRC sh :tangle create_all_variant_reports.sh  :exports code :shebang "#!/bin/bash" :noweb yes
+      <<tlib>>
 
       pwd=$(pwd)
 
@@ -1525,10 +1565,8 @@ EOF
       }
 
       main() {
-
-          PATH=$PATH:~/gemini/anaconda/bin
-          PATH=$PATH:~/code/sng/scripts
-          PATH=$PATH:/usr/local/bin
+        <<pathvar>>
+          
 
           PATIENT_ID=
           GEMINI_DATABASEPATH=
@@ -1556,7 +1594,7 @@ EOF
 
           for i in ${samples_array[@]}; do
               step "Creating report for $i"
-              try ../create_variant_report.sh  -i $i    -g $GEMINI_DATABASEPATH -d $DATABASEPATH  -t $TEMPLATE 
+              try create_variant_report.sh  -i $i    -g $GEMINI_DATABASEPATH -d $DATABASEPATH  -t $TEMPLATE 
               next 
           done
 
