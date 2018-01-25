@@ -1434,11 +1434,11 @@ EOF
                 info = file.info("VARPATIENT_ID_omim.csv")
                 if(info[1,1] != 0){
                   omim = read_csv("VARPATIENT_ID_omim.csv",col_names = FALSE)
-                  omim_genes = select(omim, X2,X5)
-                  colnames(omim_genes) = c("OmimPanel","gene")
+                  omim_genes = select(omim, X2,X5,X6)
+                  colnames(omim_genes) = c("OmimPanel","gene","Inheritance")
                   omim_genes = distinct(omim_genes, OmimPanel, gene)
                 }else{
-                  omim_genes = tibble(OmimPanel = character(), gene = character()) 
+                  omim_genes = tibble(OmimPanel = character(), gene = character(),Inheritance = character( ))
                 }
 
                 df = df %>% left_join(omim_genes, by = "gene")
@@ -1474,7 +1474,7 @@ EOF
 
                 df <- add_column(df , Rank = 1:nrow(df),.before = 1)
 
-                df  <- df  %>% select(Rank, pos, GTS, gene, Severity ,cadd_scaled, PhenolyzerPanel,OmimPanel,CallQ, Depth,  RefD,AltD, everything())
+                df  <- df  %>% select(Rank, pos, GTS, gene, Severity ,cadd_scaled, PhenolyzerPanel,OmimPanel,Inheritance,CallQ, Depth,  RefD,AltD, everything())
                 
 
 

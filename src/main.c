@@ -6,8 +6,6 @@
 #define xstr(x)         str(x)
 
 
-
-
 int check_if_db_exists_otherwise_create(struct parameters* param);
 
 int query_omim_and_insert_results(struct parameters* param);
@@ -67,6 +65,9 @@ int main (int argc, char * argv[])
                 
         }else if(strncmp(argv[1],"termlist",8) == 0){
                 RUNP(param = get_termlist_param(argc,argv));
+
+                RUN(check_if_db_exists_otherwise_create(param));
+                
                 RUN(get_term_list(param));
         }else if(strncmp(argv[1],"readphe",7) == 0){
                 RUNP(param = get_readphe_param(argc,argv));
