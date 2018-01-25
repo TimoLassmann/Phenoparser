@@ -1434,9 +1434,9 @@ EOF
                 info = file.info("VARPATIENT_ID_omim.csv")
                 if(info[1,1] != 0){
                   omim = read_csv("VARPATIENT_ID_omim.csv",col_names = FALSE)
-                  omim_genes = select(omim, X2,X5,X6)
+                  omim_genes = select(omim, X4,X6,X5)
                   colnames(omim_genes) = c("OmimPanel","gene","Inheritance")
-                  omim_genes = distinct(omim_genes, OmimPanel, gene)
+                  omim_genes = distinct(omim_genes, OmimPanel, gene, Inheritance)
                 }else{
                   omim_genes = tibble(OmimPanel = character(), gene = character(),Inheritance = character( ))
                 }
@@ -1513,8 +1513,8 @@ EOF
 
 
 
-              button_list <- list(list(extend='colvisGroup', text="Show additional columns", show=c(12:17)),
-                                    list(extend='colvisGroup', text="Hide additional columns", hide=c(12:17))
+              button_list <- list(list(extend='colvisGroup', text="Show additional columns", show=c(13:18)),
+                                    list(extend='colvisGroup', text="Hide additional columns", hide=c(13:18))
                                     )
 
 
@@ -1525,7 +1525,7 @@ EOF
                     pageLength=25,
                     autoWidth = FALSE,columnDefs = list(
                         list(width = '5px', targets = "_all"),
-                        list(visible=FALSE, targets=c(12:17))
+                        list(visible=FALSE, targets=c(13:18))
                     )
                 )
                 ) %>%
