@@ -34,6 +34,12 @@ AC_CHECK_LIB([curl], [curl_easy_setopt],,[AC_MSG_ERROR([libcurl required!])])
 AC_CHECK_LIB([curl], [curl_easy_cleanup],,[AC_MSG_ERROR([libcurl required!])])
 AC_CHECK_LIB([curl], [curl_free],,[AC_MSG_ERROR([libcurl required!])])
 
+
+
+AC_CHECK_LIB([ssl], [SSL_new], [], [AC_MSG_ERROR([libssl required!])])
+AC_CHECK_LIB([crypto], [EVP_get_cipherbyname], [], [AC_MSG_ERROR([libcrypto required!])])
+
+
 AC_SUBST(CURL_CFLAGS)
 AC_SUBST(CURL_LIBS)
 

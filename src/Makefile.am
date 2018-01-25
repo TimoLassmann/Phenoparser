@@ -15,7 +15,8 @@ bin_PROGRAMS = phenoparser
 phenoparser_SOURCES = \
 phenoparser.h \
 main.c \
-user_interface.c
+user_interface.c \
+misc.c
 
 
 phenoparser_LDADD = ${MYLIBDIRS}

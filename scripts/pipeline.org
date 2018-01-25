@@ -31,7 +31,6 @@
   | make reports for patients | shell script                                         | takes gemini database and phenotype data and combines it into one report                        |
   |                           |                                                      |                                                                                                 |
 
-
 * Data 
   For each patient I have one directory with two sub-directories: vcf and pheno.
   The latter contains text files with the phenotype / disease annotation.
@@ -1365,7 +1364,7 @@ EOF
        1. Maximum allele frequency in any population: 0.01
        2. Minimum CADD score 15 OR impact severity HIGH
 
-       ```{r Gemini, include=TRUE}
+       ```{r Gemini, include=FALSE}
 
                 try(system("gemini query --header -q 'select chrom, start, end, gene, impact, impact_severity,
                  cadd_scaled,polyphen_score,sift_score, clinvar_sig,max_aaf_all,sub_type,
@@ -1391,11 +1390,11 @@ EOF
                 df = rename(df, Poly = polyphen_score)
                 df = rename(df, Sift = sift_score)
 
-                df = rename(df, GTS = gts.VARPATIENT_ID)
-                df = rename(df, Depth = gt_depths.VARPATIENT_ID)
-                df = rename(df, CallQ = gt_quals.VARPATIENT_ID)
-                df = rename(df, RefD = gt_ref_depths.VARPATIENT_ID)
-                df = rename(df, AltD = gt_alt_depths.VARPATIENT_ID)
+                df = rename(df, GTS = "gts.VARPATIENT_ID")
+                df = rename(df, Depth = "gt_depths.VARPATIENT_ID")
+                df = rename(df, CallQ = "gt_quals.VARPATIENT_ID")
+                df = rename(df, RefD = "gt_ref_depths.VARPATIENT_ID")
+                df = rename(df, AltD = "gt_alt_depths.VARPATIENT_ID")
 
                 df = df %>% mutate(max_aaf_all = sprintf("%0.1e", max_aaf_all))
                 df = df %>% mutate(CallQ = sprintf("%0.0f",CallQ))
@@ -1405,7 +1404,7 @@ EOF
 
 
 
-       ```{r Export Phenotype information, include=FALSE}
+       ```{r Export Phenotype information,echo=FALSE, include=FALSE}
 
                 try(system("phenoparser  panel  --id VARPATIENT_ID --db VAROMIM_DATABASEPATH --out VARPATIENT_ID"))
 
@@ -1422,9 +1421,11 @@ EOF
 
                 info = file.info("VARPATIENT_ID_terms.csv")
                 if(info[1,1] != 0){
-                terms = read_csv("VARPATIENT_ID_terms.csv",col_names = FALSE)
-                datatable(terms,rownames=TRUE,filter = 'top',options = list(pageLength=50,autoWidth = TRUE,columnDefs = list(list(width = '5px', targets = "_all")))
-                )
+                terms = suppressMessages(read_csv("VARPATIENT_ID_terms.csv",col_names = FALSE))
+                colnames(terms) = c("Patient ID","Term")
+                #datatable(terms,rownames=TRUE,filter = 'top',options = list(pageLength=50,autoWidth = TRUE,columnDefs = list(list(width = '5px', targets = "_all"))))
+                kable(terms,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
+                
                 }
        ```
 
@@ -1473,7 +1474,7 @@ EOF
 
                 df <- add_column(df , Rank = 1:nrow(df),.before = 1)
 
-                df  <- df  %>% select(Rank, pos, GTS, gene, Severity ,cadd_scaled, PhenolyzerPanel,OmimPanel,Depth, CallQ, RefD,AltD, everything())
+                df  <- df  %>% select(Rank, pos, GTS, gene, Severity ,cadd_scaled, PhenolyzerPanel,OmimPanel,CallQ, Depth,  RefD,AltD, everything())
                 
 
 
@@ -1493,10 +1494,19 @@ EOF
        ```{r Option table,echo=FALSE, include=TRUE}
 
        friends_data <- data_frame(
-         Column = c("Rank", "pos", "GTS", "PhenolyzerPanel","OmimPanel"),
-         Description = c("rank of variant after sorting the list according to the criteria above", "genomic coordinates", "genotpye", "contains a score for genes returned by phenolyzer","contain genes associated with the patients disease phenotype"),
+         Column = c("Rank", "pos", "GTS", "PhenolyzerPanel","OmimPanel","CallQ","Depth", "RefD","AltD"),
+         Description = c("rank of variant after sorting the list according to the criteria above",
+                           "genomic coordinates",
+                           "genotpye",
+                           "contains a score for genes returned by phenolyzer",
+                           "contain genes associated with the patients disease phenotype",
+                           "Phred scaled call quality", 
+                           "Read depth",
+                           "Depth of reference allele",
+                           "Depth of alternate allele"
+                     ),                       
        )          
-       kable(friends_data,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F)
+       kable(friends_data,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
        ```
 
        ```{r, echo=FALSE,include=TRUE}

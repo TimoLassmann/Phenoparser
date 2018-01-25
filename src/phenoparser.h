@@ -23,7 +23,17 @@
 #include <curl/curl.h>
 #include <sqlite3.h>
 
+
+#include "openssl/conf.h"
+#include "openssl/err.h"
+#include "openssl/engine.h"
+#include "openssl/ssl.h"
+
+
 #include "tldevel.h"
+
+#include "rbtree.h"
+
 
 struct parameters{
         char* local_sqlite_database_name;
@@ -48,6 +58,7 @@ struct OMIM{
         char* phenotypeMimNumber;
         char* phenotypeMappingKey;
         char* phenotypeInheritance;
+        char* phenotypicSeriesNumber;
         char* sequenceID;
         char* chromosome;
         char* chromosomeSymbol;
@@ -77,6 +88,11 @@ struct ParserStruct {
 
 };
 
+struct string_struct{
+        char* name;
+};
+
+
 /* user interface */
 int print_global_help(int argc, char * argv[]);
 struct parameters* get_panel_param(int argc, char * argv[]);
@@ -86,5 +102,8 @@ struct parameters* get_insert_param(int argc, char * argv[]);
 struct parameters* get_readphe_param(int argc, char * argv[]);
 
 void free_param(struct parameters* param);
+
+/* misc */
+struct rbtree_root* make_string_tree(void);
 
 #endif
