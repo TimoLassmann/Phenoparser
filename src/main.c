@@ -124,11 +124,15 @@ int read_phenolyzer_output(struct parameters* param)
         }
         
 
-        if(!my_file_exists(param->phenofile)){
-                ERROR_MSG("File: %s does not exist!",param->phenofile);
+        //.merge_gene_scores
+        //.seed_gene_list
+
+        snprintf(buffer,BUFFER_LEN*10,"%s.seed_gene_list",param->phenofile);
+        if(!my_file_exists(buffer)){
+                ERROR_MSG("File: %s does not exist!",buffer);
         }
-        
-        RUNP(f_ptr = fopen(param->phenofile,"r"));
+
+        RUNP(f_ptr = fopen(buffer,"r"));
 
         // SEED LIST looks like this: 
         //Rank	Gene	ID	Score
@@ -180,6 +184,38 @@ int read_phenolyzer_output(struct parameters* param)
                 line_num++;
         }
         fclose(f_ptr);
+
+        
+        //.merge_gene_scores
+        //.seed_gene_list
+        int new_gene = 1;
+        snprintf(buffer,BUFFER_LEN*10,"%s.merge_gene_scores",param->phenofile);
+        
+        if(!my_file_exists(buffer)){
+                ERROR_MSG("File: %s does not exist!",buffer);
+        }
+
+        RUNP(f_ptr = fopen(buffer,"r"));
+        line_num = 1;
+        while(fgets(line, LINE_LEN, f_ptr)){
+                if(line_num> 1){
+                        if(new_gene){
+                                r = sscanf(line,"%"xstr(BUFFER_LEN)"s\t",Gene);
+                                fprintf(stdout,"Gene: %s\n",Gene);
+                                new_gene = 0;
+                        }
+                        if(strlen(line) == 1){
+                                new_gene = 1;
+                        }else{
+                                DPRINTF3("%d %s",strlen(line),line);
+                        }
+                        //DPRINTF3("%d %s",strlen(line),line);
+                                
+                }
+                line_num++;
+        }
+        fclose(f_ptr);
+        
         rc = sqlite3_close(sqlite_db);
         
         return OK;

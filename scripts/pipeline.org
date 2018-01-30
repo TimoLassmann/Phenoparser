@@ -1194,13 +1194,20 @@ EOF
 
                    outname="$SAMPLENAME"
                    outname+="_term_list.txt"
+                   
+                   phenolyzeroutput="phenolyzer_"
+                   phenolyzeroutput+="$SAMPLENAME"
 
                    phenoparser termlist --id $SAMPLENAME --db $OUT_DATABASE $WORKINGDIR/$HPOname  $WORKINGDIR/$OMIMname -o $WORKINGDIR/$outname
 
                    step "Retrieve HPO info"
-                   try docker run -v $WORKINGDIR:/data -u `stat -c "%u:%g" $WORKINGDIR` seqnextgen_phenolyzer perl /src/phenolyzer/disease_annotation.pl /data/$outname -f -p -ph -logistic -out /data/phenolyzer/hpo -addon DB_DISGENET_GENE_DISEASE_SCORE,DB_GAD_GENE_DISEASE_SCORE -addon_weight 0.25
-                   try phenoparser readphe  --id $SAMPLENAME --pheno $WORKINGDIR/phenolyzer/hpo.seed_gene_list  --db $OUT_DATABASE
-                   try rm -rf  $WORKINGDIR/phenolyzer/
+                   try perl ~/programs/phenolyzer/disease_annotation.pl ./tmp/$outname -f -p -ph -logistic -out ./tmp/$phenolyzeroutput/$SAMPLENAME -addon DB_DISGENET_GENE_DISEASE_SCORE,DB_GAD_GENE_DISEASE_SCORE -addon_weight 0.25
+                   try phenoparser readphe  --id $SAMPLENAME --pheno ./tmp/$phenolyzeroutput/$SAMPLENAME.seed_gene_list  --db $OUT_DATABASE
+
+
+                   #try docker run -v $WORKINGDIR:/data -u `stat -c "%u:%g" $WORKINGDIR` seqnextgen_phenolyzer perl /src/phenolyzer/disease_annotation.pl /data/$outname -f -p -ph -logistic -out /data/$phenolyzeroutput/$SAMPLENAME  -addon DB_DISGENET_GENE_DISEASE_SCORE,DB_GAD_GENE_DISEASE_SCORE -addon_weight 0.25
+                   #try phenoparser readphe  --id $SAMPLENAME --pheno $WORKINGDIR/$SAMPLENAME_phenolyzer/hpo.seed_gene_list  --db $OUT_DATABASE
+                   
 
                    next
                   
@@ -1342,6 +1349,8 @@ EOF
 
        # Patient report: VARPATIENT_ID
 
+       Sequencing platform: VARGEMINI_DATABASEPATH
+
        <style>
                 .main-container { width: 1600px; max-width:1600px;}
        </style>
@@ -1349,6 +1358,8 @@ EOF
        ```{r setup, warning = FALSE, message = FALSE, include=FALSE}
                 # Load the packages into R
                 library(dplyr)
+                library(rlang)
+                library(stringr)
                 library(knitr)
                 library(DT)
                 library(tidyverse)
@@ -1441,7 +1452,7 @@ EOF
                   omim_genes = tibble(OmimPanel = character(), gene = character(),Inheritance = character( ))
                 }
 
-                df = df %>% left_join(omim_genes, by = "gene")
+                #df = df %>% left_join(omim_genes, by = "gene")
 
        ```
 
@@ -1456,21 +1467,33 @@ EOF
                   hpo_genes = distinct(hpo_genes, PhenolyzerPanel, gene)
 
                 }else{
-                   hpo_genes  = tibble(PhenolyzerPanel = character(), gene = character()) 
+                   hpo_genes  = tibble(PhenolyzerPanel = numeric(), gene = character()) 
                 }
-
-                df = df %>% left_join(hpo_genes, by = "gene")
+                
+                #df = df %>% left_join(hpo_genes, by = "gene")
 
 
        ```
 
+       ```{r joining... } 
+             pheno <- omim_genes %>% full_join(hpo_genes, by = "gene")
+
+            pheno <-pheno %>%  group_by(gene) %>% dplyr::summarise(OmimPanel=paste(unique(OmimPanel), collapse=";"),Inheritance=paste(unique(Inheritance), collapse = ";"),PhenolyzerPanel=max(PhenolyzerPanel)) %>% arrange(desc(PhenolyzerPanel))
+
+
+             pheno <- pheno %>% replace_na(list(PhenolyzerPanel = 0.0, OmimPanel = "NA"))
+
+             df = df %>% left_join(pheno, by = "gene")
+             
+       ```
        ## Ranking of variants
 
        The table is sorted by variants in genes associated with the patients disease phenotype and then by descending CADD score.
 
        ```{r Sorting,include=TRUE}
-
-                df <- arrange(df, OmimPanel, desc(PhenolyzerPanel), desc(cadd_scaled))
+                
+                #df <- df %>% group_by(OmimPanel,PhenolyzerPanel)  %>% arrange(OmimPanel)  %>%  arrange(desc(PhenolyzerPanel))  %>%  arrange(desc(cadd_scaled))
+                df <- arrange(df,desc(PhenolyzerPanel * 1000 +  str_length(OmimPanel)),OmimPanel ,desc(PhenolyzerPanel), desc(cadd_scaled))
 
                 df <- add_column(df , Rank = 1:nrow(df),.before = 1)
 
