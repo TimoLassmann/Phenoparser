@@ -93,6 +93,7 @@ struct string_struct{
 };
 
 
+
 /* user interface */
 int print_global_help(int argc, char * argv[]);
 struct parameters* get_panel_param(int argc, char * argv[]);
@@ -103,7 +104,35 @@ struct parameters* get_readphe_param(int argc, char * argv[]);
 
 void free_param(struct parameters* param);
 
+/* parser.c  */
+
+
+int phenotype_series_search(struct parameters* param, char* search_term);
+int search_and_insert_disease(struct parameters* param, char* search_term, struct rbtree_root* series);
+
+/* database stuff */
+
+int check_if_db_exists_otherwise_create(struct parameters* param);
+
+/* kind of database but defined in main.c */
+int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, char* search_term, struct rbtree_root* series);
+int enter_term(struct OMIM_list* ol, char* name,char* value );
+
+
+/* omim list */
+
+struct OMIM_list* init_omim_list(int n);
+int clear_omim_list(struct OMIM_list* ol);
+int resize_omim_list(struct OMIM_list* ol, int add);
+void free_omim_list(struct OMIM_list* ol);
+
+struct OMIM* init_omim_entry(void);
+
+int clear_term(struct OMIM* omim);
+void free_omim(struct OMIM* omim);
+
 /* misc */
 struct rbtree_root* make_string_tree(void);
+int remove_comma(char* in);
 
 #endif

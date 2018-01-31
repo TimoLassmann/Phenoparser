@@ -77,3 +77,17 @@ struct rbtree_root* make_string_tree(void)
 ERROR:
         return NULL;
 }
+
+
+int remove_comma(char* in)
+{
+        int i;
+        int len;
+        len = strlen(in);
+        for(i = 0; i < len;i++){
+                if(in[i] == ','){
+                        in[i] = '_';
+                }
+        }
+        return OK;
+}

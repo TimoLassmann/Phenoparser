@@ -14,6 +14,9 @@ AM_CPPFLAGS=${MYINCDIRS}
 bin_PROGRAMS = phenoparser
 phenoparser_SOURCES = \
 phenoparser.h \
+omimlist.c \
+parser.c \
+sqlite_database.c \
 main.c \
 user_interface.c \
 misc.c

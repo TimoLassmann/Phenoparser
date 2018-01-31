@@ -6,43 +6,12 @@
 #define xstr(x)         str(x)
 
 
-int check_if_db_exists_otherwise_create(struct parameters* param);
-
 int query_omim_and_insert_results(struct parameters* param);
-
-
-int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, char* search_term, struct rbtree_root* series);
-int phenotype_series_search(struct parameters* param, char* search_term);
-
-int search_and_insert_disease(struct parameters* param, char* search_term, struct rbtree_root* series);
 
 int make_table_output(struct parameters* param);
 
 int read_phenolyzer_output(struct parameters* param);
-
-
-static void startElement(void *userData, const XML_Char *name, const XML_Char **atts);
-static void characterDataHandler(void *userData, const XML_Char *s, int len);
-static void endElement(void *userData, const XML_Char *name);
-static size_t parseStreamCallback(void *contents, size_t length, size_t nmemb, void *userp);
-
-int enter_term(struct OMIM_list* ol, char* name,char* value );
-
-int callback(void *NotUsed, int argc, char **argv, char **azColName);
-
-struct OMIM_list* init_omim_list(int n);
-int clear_omim_list(struct OMIM_list* ol);
-int resize_omim_list(struct OMIM_list* ol, int add);
-void free_omim_list(struct OMIM_list* ol);
-
-struct OMIM* init_omim_entry(void);
-
-int clear_term(struct OMIM* omim);
-void free_omim(struct OMIM* omim);
-
-int remove_comma(char* in);
-
-
+int enter_detailed_evidence_information(struct parameters* param);
 int get_term_list(struct parameters* param);
 
 int main (int argc, char * argv[])
@@ -185,29 +154,120 @@ int read_phenolyzer_output(struct parameters* param)
         }
         fclose(f_ptr);
 
+        RUN(enter_detailed_evidence_information(param));
+        
+        rc = sqlite3_close(sqlite_db);
+        
+        return OK;
+ERROR:
+        return FAIL;
+}
+
+int enter_detailed_evidence_information(struct parameters* param)
+{
+        FILE* f_ptr = NULL;
+        char line[LINE_LEN];
+        int line_num = 1;
+
+        int new_gene = 1;
+        
+        char buffer[BUFFER_LEN*10];
+        char append_buffer[BUFFER_LEN*10];
+        char gene[BUFFER_LEN];
+
+        /* entries we want to capture */
+
+        struct capture{
+                char database_type[BUFFER_LEN]; /* Type of database : OMIM., umls, ORPHANET etc */
+                char database_id[BUFFER_LEN];   /* ID number of entry i.e. C0265210 or  117550*/
+                char data_base_name[BUFFER_LEN];      /* name of database - king of redundant */
+                char disease_description[BUFFER_LEN]; /* name of disease  */
+                char hpo_term[BUFFER_LEN];            /* HPO term triggering match  */
+                double score; 
+                        
+        } cap;
+        /* To gethyperlinks into the output datatable all we need to do us
+         * insert html code into the information below and add the "escape =
+         * FALSE" option to the R DT datatable call */
+        
+        char* description = NULL;
+        int len;
+        int alloc_len = 256;
+        int r,i;
+
+        int num_genes = 0;
+
+        ASSERT(param != NULL ,"No param.");
         
         //.merge_gene_scores
         //.seed_gene_list
-        int new_gene = 1;
+
         snprintf(buffer,BUFFER_LEN*10,"%s.merge_gene_scores",param->phenofile);
         
         if(!my_file_exists(buffer)){
                 ERROR_MSG("File: %s does not exist!",buffer);
         }
 
+        MMALLOC(description,sizeof(char) * alloc_len);
+        len = 0;
+                
         RUNP(f_ptr = fopen(buffer,"r"));
         line_num = 1;
         while(fgets(line, LINE_LEN, f_ptr)){
                 if(line_num> 1){
                         if(new_gene){
-                                r = sscanf(line,"%"xstr(BUFFER_LEN)"s\t",Gene);
-                                fprintf(stdout,"Gene: %s\n",Gene);
+                                r = sscanf(line,"%"xstr(BUFFER_LEN)"s\t",gene);
+                                //fprintf(stdout,"Gene: %s\n",gene);
                                 new_gene = 0;
-                        }
-                        if(strlen(line) == 1){
-                                new_gene = 1;
+                                num_genes++;
+                                if(num_genes == 10){
+                                        break;
+                                }
                         }else{
-                                DPRINTF3("%d %s",strlen(line),line);
+                                if(strlen(line) == 1){
+                                        new_gene = 1;
+                                        description[len] = 0;
+                                        fprintf(stdout,"%s (%d)\n%s\n",gene, num_genes,description);
+                                        len = 0;
+                                }else{
+                                        /* This is interesting. Instead of usingp
+
+                                         * %s etc is it possible to tell scanf
+                                         * function to match everything
+                                         * excluding a particular character. For
+                                         * example %[^:]: means match everything
+                                         * until a : is encountered. The next :
+                                         * means scanf w2ill skip over this
+                                         * character. */
+                                        r = sscanf(line,"%"xstr(BUFFER_LEN)"[^:]:%"xstr(BUFFER_LEN)"[^ ] %"xstr(BUFFER_LEN)"[^\t]\t%"xstr(BUFFER_LEN)"[^\t]\t%"xstr(BUFFER_LEN)"[^\t]\t%lf", cap.database_type,cap.database_id,cap.data_base_name,cap.disease_description,cap.hpo_term,&cap.score);
+                                        if(strncmp(cap.database_type,"OMIM",4) == 0){
+                                                snprintf(buffer,BUFFER_LEN * 10,"<a href=\"https://www.omim.org/entry/%s\">%s</a>", cap.database_id,cap.database_id);
+                                        }else if(strncmp(cap.database_type,"ORPHANET",8) == 0){
+                                                snprintf(buffer,BUFFER_LEN * 10,"<a href=\"http://www.orpha.net/consor/cgi-bin/OC_Exp.php?Lng=GB&Expert=%s\">%s</a>", cap.database_id,cap.database_id);
+
+                                        }else if(strncmp(cap.database_type,"umls",4) == 0){
+                                                snprintf(buffer,BUFFER_LEN * 10,"<a href=https://www.ncbi.nlm.nih.gov/medgen/%s\">%s</a>", cap.database_id,cap.database_id);
+                                                //          C0175695
+                                        }else{
+                                                snprintf(buffer,BUFFER_LEN * 10,"%s",cap.database_id);
+                                        }
+
+                                        /* create line parser line input to be concatenated with other info */
+
+                                        snprintf(append_buffer,BUFFER_LEN*10,"%s:%s %s %s %s %0.4f\n",cap.database_type, buffer, cap.data_base_name, cap.disease_description,cap.hpo_term, cap.score);
+                                        //fprintf(stdout,"%s\n%s\n%s\n%s\n%s\n%f (score) \n%s\n \n", cap.database_type, cap.database_id,cap.data_base_name, cap.disease_description, cap.hpo_term, cap.score,buffer);
+                                        //fprintf(stdout,"%s\n",append_buffer);
+                                        /* change omim id to hyperlink....  */
+                                        for(i = 0; i < strlen(append_buffer);i++){
+                                                description[len] = append_buffer[i];
+                                                len++;
+                                                if(len == alloc_len){
+                                                        alloc_len = alloc_len << 1;
+                                                        MREALLOC(description,sizeof(char) * alloc_len);
+                                                }
+                                        }
+                                        /* DPRINTF3("%d %s",strlen(line),line); */
+                                }
                         }
                         //DPRINTF3("%d %s",strlen(line),line);
                                 
@@ -216,12 +276,91 @@ int read_phenolyzer_output(struct parameters* param)
         }
         fclose(f_ptr);
         
-        rc = sqlite3_close(sqlite_db);
+        return OK;
+ERROR:
+        if(f_ptr){
+                fclose(f_ptr);
+        }
+        if(description){
+                MFREE(description);
+        }
+        return FAIL;
+}
+
+
+
+
+
+
+int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, char* search_term, struct rbtree_root* series)
+{
+        sqlite3 *sqlite_db = NULL;
+        int rc;          
+
+        char buffer[BUFFER_LEN*10];
         
+        int i,j,c;
+        
+        struct string_struct* tmp = NULL;
+
+        
+        ASSERT(ol != NULL,"No List");
+        ASSERT(param != NULL,"No parameters");
+        
+                
+        rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
+        if(rc!=SQLITE_OK ){
+                ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
+        }
+        snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE INTO patient  VALUES ('%s','%s');",param->patient_id,search_term);
+        rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+        if( rc!=SQLITE_OK ){
+                LOG_MSG("try:%s",buffer);            
+                ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
+        }        	
+        
+
+        
+        LOG_MSG("Found: %d associations.",ol->num_entries);
+        c = 0;
+        for (i = 0; i <= ol->num_entries;i++){
+                snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE INTO diseaseMIM VALUES ('%s','%s','%s','%s');", search_term,  ol->terms[i]->phenotypeMimNumber,ol->terms[i]->phenotype,ol->terms[i]->phenotypeInheritance );
+                
+                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+                if( rc!=SQLITE_OK ){
+                        LOG_MSG("try:%s",buffer);
+                        ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
+                }
+                for(j = 0; j < MAX_ALT_GENE_NAMES;j++){
+                        if(strcmp(ol->terms[i]->geneSymbols[j],"NA")){
+                                c++;
+                                snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE  INTO MIMgene VALUES ('%s','%s');", ol->terms[i]->phenotypeMimNumber,ol->terms[i]->geneSymbols[j]);
+                                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+                                if( rc!=SQLITE_OK ){
+                                        LOG_MSG("try:%s",buffer);
+                                        ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
+                                }
+                                if(series){
+                                        MMALLOC(tmp, sizeof(struct string_struct));
+                                        tmp->name = NULL;
+                                        MMALLOC(tmp->name,sizeof(char) * 128);
+                                        snprintf(tmp->name,128,"%s", ol->terms[i]->phenotypicSeriesNumber);
+                                        series->tree_insert(series, tmp);
+                                        tmp = NULL;
+                                }
+                                
+                                fprintf(stdout,"%s %s %s %s %s\n",ol->terms[i]->phenotypeInheritance,  ol->terms[i]->phenotype,ol->terms[i]->phenotypeMimNumber, ol->terms[i]->geneSymbols[j], ol->terms[i]->phenotypicSeriesNumber);
+                        }
+                }
+        }
+        LOG_MSG("Found: %d gene symbols.",c);
+              
+        rc = sqlite3_close(sqlite_db);
         return OK;
 ERROR:
         return FAIL;
 }
+
 
 int get_term_list(struct parameters* param)
 {
@@ -560,34 +699,6 @@ ERROR:
         return FAIL;
 }
 
-int callback(void *NotUsed, int argc, char **argv, char **azColName)
-{
-        int i;
-        static int first_call = 1;
-        NotUsed = 0;
-
-        if(first_call == 1){
-                for (i = 0; i < argc; i++) {
-                        if(i){
-                                fprintf(stdout,",");    
-                        }
-                        fprintf(stdout,"%s",azColName[i]);
-                }
-                fprintf(stdout,"\n");
-        }
-        for (i = 0; i < argc; i++) {
-                if(i){
-                        fprintf(stdout,",");    
-                }
-                fprintf(stdout,"%s",argv[i] ? argv[i] : "NULL");
-        }
-        fprintf(stdout,"\n");
-/*    for (i = 0; i < argc; i++) {
-      printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
-      }*/
-        first_call = 0;
-        return OK;
-}
 
 
 int query_omim_and_insert_results(struct parameters* param)
@@ -678,387 +789,7 @@ ERROR:
 }
 
 
-int phenotype_series_search(struct parameters* param, char* search_term)
-{
-        char buffer[BUFFER_LEN*10];
-        char search_term_tmp[BUFFER_LEN];
-        CURL *curl_handle;        CURLcode res;
-        XML_Parser parser;
-        struct ParserStruct state;
-        int i,c,len; 
-        int start = 0;
-        int step = 10;
 
-        /* Initialize the state structure for parsing. */
-        memset(&state, 0, sizeof(struct ParserStruct));
-        state.ok = 1;
-        state.ol = NULL; 
-
-        RUNP(state.ol = init_omim_list(50));
-        
-        /* Initialize a namespace-aware parser. */
-        //parser = XML_ParserCreateNS(NULL, '\0');
-        //XML_SetUserData(parser, &state);
-        //XML_SetElementHandler(parser, startElement, endElement);
-        //XML_SetCharacterDataHandler(parser, characterDataHandler);
- 
-        /* Initialize a libcurl handle. */
-        //curl_global_init(CURL_GLOBAL_ALL ^ CURL_GLOBAL_SSL);
-        //c/url_handle = curl_easy_init
-        
-        len = strlen(search_term);
-        
-        c = 0;
-        for(i = 0; i<= len;i++){
-                if(isspace((int) search_term[i])){
-                        search_term_tmp[c] = '%';
-                        c++;
-                        search_term_tmp[c] = '2';
-                        c++;
-                        search_term_tmp[c] = '0';
-                        c++;
-                }else{
-                        search_term_tmp[c] = search_term[i];
-                        c++; 
-                }
-        }
-        search_term_tmp[c] = 0;
-
-        state.ol->num_entries = 1;
-        while(state.ol->num_entries){
-                RUN(clear_omim_list(state.ol));
-                state.ok = 1;
-                /* Initialize a namespace-aware parser. */
-                parser = XML_ParserCreateNS(NULL, '\0');
-                XML_SetUserData(parser, &state);
-                XML_SetElementHandler(parser, startElement, endElement);
-                XML_SetCharacterDataHandler(parser, characterDataHandler);
- 
-                /* Initialize a libcurl handle. */
-                curl_global_init(CURL_GLOBAL_ALL ^ CURL_GLOBAL_SSL);
-                curl_handle = curl_easy_init();
-
-        
-                LOG_MSG("start search with %d genes.", state.ol->num_entries);
-                snprintf(buffer,BUFFER_LEN*10,"http://api.omim.org/api/entry/search?search=phenotypic_series_number:%s%s%s&start=%d&limit=%d&include=geneMap&apiKey=%s","%22",search_term_tmp,"%22",start,step, param->omimkey);
-                DPRINTF2("%s",buffer);
-
-
-        
-
-        
-                curl_easy_setopt(curl_handle, CURLOPT_URL,buffer);
-                curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, parseStreamCallback);
-                curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)parser);
- 
-                //printf("Depth   Characters   Closing Tag\n");
- 
-                /* Perform the request and any follow-up parsing. */
-                res = curl_easy_perform(curl_handle);
-                if(res != CURLE_OK) {
-                        fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                                curl_easy_strerror(res));
-                } else if(state.ok) {
-                        /* Expat requires one final call to finalize parsing. */
-                        if(XML_Parse(parser, NULL, 0, 1) == 0) {
-                                int error_code = XML_GetErrorCode(parser);
-                                fprintf(stderr, "Finalizing parsing failed with error code %d (%s).\n",
-                                        error_code, XML_ErrorString(error_code));
-                        }
-                }
-                /* Insest query results into sqlite. Last parameter is null as I
-                 * do not want anything extra to be inserted into the rb_tree
-                 * holding phenotypic series. */
-                RUN(action_insert_into_sqlite(state.ol, param, search_term, NULL));
-                
-                /*ol = state.ol;
-                LOG_MSG("Found: %d associations.",ol->num_entries);
-                c = 0;
-                for (i = 0; i <= ol->num_entries;i++){
-                        for(j = 0; j < MAX_ALT_GENE_NAMES;j++){
-                                if(strcmp(ol->terms[i]->geneSymbols[j],"NA")){
-                                        fprintf(stdout,"%s %s %s %s\n",ol->terms[i]->phenotype,ol->terms[i]->phenotypeMimNumber, ol->terms[i]->geneSymbols[j], ol->terms[i]->phenotypicSeriesNumber);
-                                }
-                        }
-                        }*/
-                LOG_MSG("Found: %d gene symbols.",c);
-                start += step;
-
-                //free(state.characters.memory);
-                XML_ParserFree(parser);
-                curl_easy_cleanup(curl_handle);
-                curl_global_cleanup();
-
-
-        }
-              
-        //XML_ParserFree(parser);
-        /* Clean up. */
-        free(state.characters.memory);
-        free_omim_list(state.ol);
-        //curl_easy_cleanup(curl_handle);
-        //curl_global_cleanup();
-
-
-        //XML_ParserFree(parser);
-        //curl_easy_cleanup(curl_handle);
-        //curl_global_cleanup();
-
-
-        //free_omim_list(state.ol);
-        //free(state.characters.memory);
-        //XML_ParserFree(parser);
-        //curl_easy_cleanup(curl_handle);
-        //curl_global_cleanup();
-
-        
-        LOG_MSG("Done");
-        return OK; 
-ERROR:
-        return FAIL;
-}
-
-
-int search_and_insert_disease(struct parameters* param, char* search_term, struct rbtree_root* series)
-{
-        char buffer[BUFFER_LEN*10];
-        char search_term_tmp[BUFFER_LEN];
-        CURL *curl_handle;
-        CURLcode res;
-        XML_Parser parser;
-        struct ParserStruct state;
-        int i,c,len; 
-        
-        int start = 0;
-        int step = 10;
-
-        /* Initialize the state structure for parsing. */
-        memset(&state, 0, sizeof(struct ParserStruct));
-        state.ok = 1;
-        state.ol = NULL; 
-
-        RUNP(state.ol = init_omim_list(50));
-        
-        len = strlen(search_term);
-        
-        c = 0;
-        for(i = 0; i<= len;i++){
-                if(isspace((int) search_term[i])){
-                        search_term_tmp[c] = '%';
-                        c++;
-                        search_term_tmp[c] = '2';
-                        c++;
-                        search_term_tmp[c] = '0';
-                        c++;
-                }else{
-                        search_term_tmp[c] = search_term[i];
-                        c++; 
-                }
-        }
-        search_term_tmp[c] = 0;
-
-        state.ol->num_entries = 1;
-        while(state.ol->num_entries){
-                RUN(clear_omim_list(state.ol));
-                state.ok = 1;
-                /* Initialize a namespace-aware parser. */
-                parser = XML_ParserCreateNS(NULL, '\0');
-                XML_SetUserData(parser, &state);
-                XML_SetElementHandler(parser, startElement, endElement);
-                XML_SetCharacterDataHandler(parser, characterDataHandler);
- 
-                /* Initialize a libcurl handle. */
-                curl_global_init(CURL_GLOBAL_ALL ^ CURL_GLOBAL_SSL);
-                curl_handle = curl_easy_init();
-
-                snprintf(buffer,BUFFER_LEN*10,"http://api.omim.org/api/entry/search?search=%s%s%s+AND+gm_phenotype_exists:true&include=geneMap&start=%d&limit=%d&apiKey=%s","%22",search_term_tmp,"%22",start,step, param->omimkey);
-
-                LOG_MSG("%s",buffer);
-                DPRINTF2("%s",buffer);
-
-        
-
-        
-                curl_easy_setopt(curl_handle, CURLOPT_URL,buffer);
-                curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, parseStreamCallback);
-                curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)parser);
- 
-                //printf("Depth   Characters   Closing Tag\n");
- 
-                /* Perform the request and any follow-up parsing. */
-                res = curl_easy_perform(curl_handle);
-                if(res != CURLE_OK) {
-                        fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                                curl_easy_strerror(res));
-                } else if(state.ok) {
-                        /* Expat requires one final call to finalize parsing. */
-                        if(XML_Parse(parser, NULL, 0, 1) == 0) {
-                                int error_code = XML_GetErrorCode(parser);
-                                fprintf(stderr, "Finalizing parsing failed with error code %d (%s).\n",
-                                        error_code, XML_ErrorString(error_code));
-                        }
-                }
-
-
-                /* insert results into tables...  */
-        
-                RUN(action_insert_into_sqlite(state.ol,param,search_term,series));
-        
-        
-        
-                start += step;
-
-                XML_ParserFree(parser);
-                curl_easy_cleanup(curl_handle);
-                curl_global_cleanup();
-
-                //free(state.characters.memory);
-        }
-              
-
-        
-        /* Clean up. */
-        free(state.characters.memory);
-        free_omim_list(state.ol);
-        
-        LOG_MSG("Done");
-        return OK;
-ERROR:
-        return FAIL;
-}
-
-
-
-int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, char* search_term, struct rbtree_root* series)
-{
-        sqlite3 *sqlite_db = NULL;
-        int rc;          
-
-        char buffer[BUFFER_LEN*10];
-        
-        int i,j,c;
-        
-        struct string_struct* tmp = NULL;
-
-        
-        ASSERT(ol != NULL,"No List");
-        ASSERT(param != NULL,"No parameters");
-        
-                
-        rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
-        if(rc!=SQLITE_OK ){
-                ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
-        }
-        snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE INTO patient  VALUES ('%s','%s');",param->patient_id,search_term);
-        rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
-        if( rc!=SQLITE_OK ){
-                LOG_MSG("try:%s",buffer);            
-                ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
-        }        	
-        
-
-        
-        LOG_MSG("Found: %d associations.",ol->num_entries);
-        c = 0;
-        for (i = 0; i <= ol->num_entries;i++){
-                snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE INTO diseaseMIM VALUES ('%s','%s','%s','%s');", search_term,  ol->terms[i]->phenotypeMimNumber,ol->terms[i]->phenotype,ol->terms[i]->phenotypeInheritance );
-                
-                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
-                if( rc!=SQLITE_OK ){
-                        LOG_MSG("try:%s",buffer);
-                        ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
-                }
-                for(j = 0; j < MAX_ALT_GENE_NAMES;j++){
-                        if(strcmp(ol->terms[i]->geneSymbols[j],"NA")){
-                                c++;
-                                snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE  INTO MIMgene VALUES ('%s','%s');", ol->terms[i]->phenotypeMimNumber,ol->terms[i]->geneSymbols[j]);
-                                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
-                                if( rc!=SQLITE_OK ){
-                                        LOG_MSG("try:%s",buffer);
-                                        ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
-                                }
-                                if(series){
-                                        MMALLOC(tmp, sizeof(struct string_struct));
-                                        tmp->name = NULL;
-                                        MMALLOC(tmp->name,sizeof(char) * 128);
-                                        snprintf(tmp->name,128,"%s", ol->terms[i]->phenotypicSeriesNumber);
-                                        series->tree_insert(series, tmp);
-                                        tmp = NULL;
-                                }
-                                
-                                fprintf(stdout,"%s %s %s %s %s\n",ol->terms[i]->phenotypeInheritance,  ol->terms[i]->phenotype,ol->terms[i]->phenotypeMimNumber, ol->terms[i]->geneSymbols[j], ol->terms[i]->phenotypicSeriesNumber);
-                        }
-                }
-        }
-        LOG_MSG("Found: %d gene symbols.",c);
-              
-        rc = sqlite3_close(sqlite_db);
-        return OK;
-ERROR:
-        return FAIL;
-}
-                               
-
-int check_if_db_exists_otherwise_create(struct parameters* param)
-{
-        char buffer[BUFFER_LEN]; 
-        sqlite3 *sqlite_db = NULL;
-        int rc;          
-        ASSERT(param->local_sqlite_database_name != NULL,"No database.");
-        if(!my_file_exists(param->local_sqlite_database_name)){
-                DPRINTF1("Creating sqlite database:%s\n", param->local_sqlite_database_name);
-                	
-                rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
-                if(rc!=SQLITE_OK ){
-                        ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
-                }
-
-                DPRINTF2("Creating table: patient\n");
-                snprintf(buffer,BUFFER_LEN,"CREATE TABLE patient(patient_id TEXT NOT NULL, DiseaseSearch TEXT,  unique (patient_id,DiseaseSearch) );");
-                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
-                if( rc!=SQLITE_OK ){
-                        ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
-                }
-
-                DPRINTF2("Creating table: diseaseMIM\n");
-                snprintf(buffer,BUFFER_LEN,"CREATE TABLE diseaseMIM(DiseaseSearch TEXT, phenotypeMimNumber INT NOT NULL,phenotypeDescription TEXT,phenotypeInheritance TEXT, unique (DiseaseSearch,phenotypeMimNumber, phenotypeInheritance));");
-                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
-                if( rc!=SQLITE_OK ){
-                        ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
-                }
-
-                DPRINTF2("Creating table: MIMgene\n");
-                snprintf(buffer,BUFFER_LEN,"CREATE TABLE MIMgene(phenotypeMimNumber INT NOT NULL, gene TEXT NOT NULL,unique (phenotypeMimNumber,gene));");
-                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
-                if( rc!=SQLITE_OK ){
-                        ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
-                }
-
-                DPRINTF2("Creating table: Phenolyzer\n");
-                snprintf(buffer,BUFFER_LEN,"CREATE TABLE phenolyzer(patient_id TEXT NOT NULL,gene TEXT NOT NULL,identifier INT,score REAL,status TEXT NOT NULL, unique (patient_id,gene));"); 
-
-                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
-                if( rc!=SQLITE_OK ){
-                        ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
-                }
-                
-                
-                rc = sqlite3_close(sqlite_db);
-                if( rc!=SQLITE_OK ){
-                        ERROR_MSG("sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
-                }
-        }
-        return OK;
-ERROR:
-        if(sqlite_db){
-                DPRINTF3("Error in check if db exists handled...");
-                rc = sqlite3_close(sqlite_db);
-                if( rc!=SQLITE_OK ){
-                        fprintf(stderr,"sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
-                }
-        }  
-        return FAIL;
-}
 
 
 
@@ -1104,55 +835,6 @@ ERROR:
 
 */
 
-
-static void startElement(void *userData, const XML_Char *name, const XML_Char **atts)
-{
-        struct ParserStruct *state = (struct ParserStruct *) userData;
-        state->tags++;
-        state->depth++;
- 
-        /* Get a clean slate for reading in character data. */
-        
-        free(state->characters.memory);
-        state->characters.memory = NULL;
-        state->characters.size = 0;
-}
- 
-static void characterDataHandler(void *userData, const XML_Char *s, int len)
-{
-        struct ParserStruct *state = (struct ParserStruct *) userData;
-        struct MemoryStruct *mem = &state->characters;
- 
-        mem->memory = realloc(mem->memory, mem->size + len + 1);
-        if(mem->memory == NULL) {
-                /* Out of memory. */
-                fprintf(stderr, "Not enough memory (realloc returned NULL).\n");
-                state->ok = 0;
-                return;
-        }
- 
-        memcpy(&(mem->memory[mem->size]), s, len);
-        mem->size += len;
-        mem->memory[mem->size] = 0;
-}
- 
-static void endElement(void *userData, const XML_Char *name)
-{
-        struct ParserStruct *state = (struct ParserStruct *) userData;
-        //int i;
-        
-        state->depth--;
-
-        /* THIS IS A HACK! the tags I wanty happen to be at depth 6...  */
-        if(state->depth == 6){
-                if (state->characters.size){
-                        enter_term(state->ol,(char*) name,(char*)state->characters.memory );
-                }
-        } 
-
-        
-        //       printf("%5lu   %10lu   NAME:%s\t%s\n", state->depth, state->characters.size, name, (char*)state->characters.memory);
-}
 
 int enter_term(struct OMIM_list* ol, char* name,char* value )
 {
@@ -1357,224 +1039,6 @@ ERROR:
         return FAIL; 
 }
 
-int remove_comma(char* in)
-{
-        int i;
-        int len;
-        len = strlen(in);
-        for(i = 0; i < len;i++){
-                if(in[i] == ','){
-                        in[i] = '_';
-                }
-        }
-        return OK;
-}
 
-static size_t parseStreamCallback(void *contents, size_t length, size_t nmemb, void *userp)
-{
-        XML_Parser parser = (XML_Parser) userp;
-        size_t real_size = length * nmemb;
-        struct ParserStruct *state = (struct ParserStruct *) XML_GetUserData(parser);
- 
-        /* Only parse if we're not already in a failure state. */
-        if(state->ok && XML_Parse(parser, contents, real_size, 0) == 0) {
-                int error_code = XML_GetErrorCode(parser);
-                fprintf(stderr, "Parsing response buffer of length %lu failed"
-                        " with error code %d (%s).\n",
-                        real_size, error_code, XML_ErrorString(error_code));
-                state->ok = 0;
-        }
-        return real_size;
-}
-
-
-struct OMIM_list* init_omim_list(int n)
-{
-        struct OMIM_list* ol = NULL;
-        int i;
-        ASSERT(n != 0,"Requesting zero entries!");
-        
-        MMALLOC(ol,sizeof(struct OMIM_list));
-        ol->terms = NULL;
-        ol->num_entries = 0;
-        ol->num_malloced = n;
-        MMALLOC(ol->terms,sizeof(struct OMIM*)* n);
-        for(i = 0; i < n;i++){
-                ol->terms[i] = NULL;
-                RUNP(ol->terms[i] =  init_omim_entry());
-        }
-        
-        
-        return ol;
-ERROR:
-        return NULL;
-}
-
-int clear_omim_list(struct OMIM_list* ol)
-{
-        int i;
-        ASSERT(ol != NULL,"No list!");
-        ol->num_entries = 0;
-        for(i = 0;i < ol->num_malloced;i++){
-                RUN(clear_term(ol->terms[i]));
-        }
-        return OK;
-ERROR:
-        return FAIL;
-
-}
-
-int resize_omim_list(struct OMIM_list* ol, int add)
-{
-        int i;
-        ASSERT(ol != NULL,"Nolist...");
-        
-        MREALLOC(ol->terms,sizeof(struct OMIM*)* (ol->num_malloced+add));
-        
-        for(i = ol->num_malloced; i < ol->num_malloced+add;i++){
-                ol->terms[i] = NULL;
-                RUNP(ol->terms[i] =  init_omim_entry());
-        }
-        ol->num_malloced += add;
-        
-        return OK;
-ERROR:
-        return FAIL;
-}
-
-
-void free_omim_list(struct OMIM_list* ol)
-{
-        if(ol){
-                int i;
-                for(i = 0; i < ol->num_malloced;i++){
-                        free_omim(ol->terms[i]);
-                }
-                MFREE(ol->terms);
-                MFREE(ol);
-        }
-}
-
-
-        
-struct OMIM* init_omim_entry(void)
-{
-        struct OMIM* omim = NULL;
-        
-        int i;
-        MMALLOC(omim,sizeof(struct OMIM));
-        omim->chromosome = NULL;
-        omim->chromosomeLocationEnd = NULL;
-        omim->chromosomeLocationStart = NULL;
-        omim->chromosomeSort = NULL;
-        omim->chromosomeSymbol = NULL;
-        omim->computedCytoLocation = NULL;
-        omim->cytoLocation = NULL;
-        omim->geneInheritance = NULL;
-        omim->geneSymbols = NULL;
-        omim->mimNumber = NULL;
-        omim->phenotype = NULL;
-        omim->phenotypeInheritance = NULL;
-        omim->phenotypeMappingKey = NULL;
-        omim->phenotypeMimNumber = NULL;
-        omim->phenotypicSeriesNumber = NULL;
-        omim->sequenceID = NULL;
-        omim->transcript = NULL;
-                
-
-        MMALLOC(omim->chromosome,sizeof(char) * 128);//
-        MMALLOC(omim->chromosomeLocationEnd,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->chromosomeLocationStart,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->chromosomeSort,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->chromosomeSymbol,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->computedCytoLocation,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->cytoLocation,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->geneInheritance,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->mimNumber,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->phenotype,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->phenotypeInheritance,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->phenotypeMappingKey,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->phenotypeMimNumber,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->phenotypicSeriesNumber,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->sequenceID,sizeof(char) * 128);// = NULL;
-        MMALLOC(omim->transcript,sizeof(char) * 128);// = NULL;
-
-        
-
-        omim->geneSymbols = NULL;
-        MMALLOC(omim->geneSymbols,sizeof(char*) * MAX_ALT_GENE_NAMES);
-        for(i = 0; i < MAX_ALT_GENE_NAMES;i++){
-                omim->geneSymbols[i] = NULL;
-                MMALLOC(omim->geneSymbols[i] ,sizeof(char) * 128);// = NULL;
-
-        }
-        RUN(clear_term(omim));
-        return omim;
-ERROR:
-        free_omim(omim);
-        return NULL;
-}
-
-int clear_term(struct OMIM* omim)
-{
-        int i;
-        
-        ASSERT(omim != NULL,"No term structure!");
-
-        snprintf(omim->chromosome,128,"NA");
-        snprintf(omim->chromosomeLocationEnd,128,"NA");
-        snprintf(omim->chromosomeLocationStart,128,"NA");
-        snprintf(omim->chromosomeSort,128,"NA");
-        snprintf(omim->chromosomeSymbol,128,"NA");
-        snprintf(omim->computedCytoLocation,128,"NA");
-        snprintf(omim->cytoLocation,128,"NA");
-        snprintf(omim->geneInheritance,128,"NA");
-        snprintf(omim->mimNumber,128,"NA");
-        snprintf(omim->phenotype,128,"NA");
-        snprintf(omim->phenotypeInheritance,128,"NA");
-        snprintf(omim->phenotypeMappingKey,128,"NA");
-        snprintf(omim->phenotypeMimNumber,128,"NA");
-        snprintf(omim->phenotypicSeriesNumber,128,"NA");
-        snprintf(omim->sequenceID,128,"NA");
-        snprintf(omim->transcript,128,"NA");
-
-        for(i = 0; i < MAX_ALT_GENE_NAMES;i++){
-                snprintf(omim->geneSymbols[i],128,"NA");
-        }
-        
-        
-        return OK;
-ERROR:
-        return FAIL; 
-}
-
-void free_omim(struct OMIM* omim)
-{
-        if(omim){
-                int i;
-                for(i = 0; i < MAX_ALT_GENE_NAMES;i++){
-                        MFREE(omim->geneSymbols[i]);// ,sizeof(char) * 128);// = NULL;
-                }
-                MFREE(omim->geneSymbols);//,sizeof(char*) * 10);
-        
-                MFREE(omim->chromosome);
-                MFREE(omim->chromosomeLocationEnd);
-                MFREE(omim->chromosomeLocationStart);
-                MFREE(omim->chromosomeSort);
-                MFREE(omim->chromosomeSymbol);
-                MFREE(omim->computedCytoLocation);
-                MFREE(omim->cytoLocation);
-                MFREE(omim->geneInheritance);
-                MFREE(omim->mimNumber);
-                MFREE(omim->phenotype);
-                MFREE(omim->phenotypeInheritance);
-                MFREE(omim->phenotypeMappingKey);
-                MFREE(omim->phenotypeMimNumber);
-                MFREE(omim->phenotypicSeriesNumber);
-                MFREE(omim->sequenceID);
-                MFREE(omim->transcript);
-                MFREE(omim);
-        }
-}
 
 
