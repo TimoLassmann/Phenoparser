@@ -47,7 +47,15 @@ int check_if_db_exists_otherwise_create(struct parameters* param)
                 if( rc!=SQLITE_OK ){
                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }
-                
+
+                DPRINTF2("Creating table: Phenolyzer Gene Information \n");
+                snprintf(buffer,BUFFER_LEN,"CREATE TABLE phenolyzerGeneData(patient_id TEXT NOT NULL,gene TEXT NOT NULL,gene_evidence TEXT NOT NULL, unique (patient_id,gene));"); 
+
+                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+                if( rc!=SQLITE_OK ){
+                        ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
+                }
+
                 
                 rc = sqlite3_close(sqlite_db);
                 if( rc!=SQLITE_OK ){
@@ -65,3 +73,43 @@ ERROR:
         }  
         return FAIL;
 }
+
+/*
+  Some test queries 
+  INSERT INTO patient VALUES ('OTTO', 'epidermolysis bullosa','');
+
+  INSERT INTO diseaseMIM VALUES ('epidermolysis bullosa',603576);
+  INSERT INTO diseaseMIM VALUES ('epidermolysis bullosa',613815);
+
+  INSERT INTO MIMgene VALUES (603576,'TRPM1');
+  INSERT INTO MIMgene VALUES (603576,'MLSN1');
+  INSERT INTO MIMgene VALUES (603576,'CSNB1C');
+
+  INSERT INTO MIMgene VALUES (613815,'CYP21A2');
+  INSERT INTO MIMgene VALUES (613815,'CYP21');
+
+  INSERT OR IGNORE INTO MIMgene VALUES (613815,'CA21H');
+
+
+  SELECT * FROM MIMgene  AS a INNER JOIN diseaseMIM AS b ON a.phenotypeMimNumber = b.phenotypeMimNumber;
+
+
+  SELECT
+  patient_id AS ID,
+  patient.DiseaseSearch AS DISEASE,
+  MIMgene.phenotypeMimNumber AS MIMnumber,
+  diseaseMIM.phenotypeDescription AS DESC,
+  MIMgene.gene AS GENE
+  FROM
+  patient 
+  INNER JOIN diseaseMIM ON diseaseMIM.DiseaseSearch = patient.DiseaseSearch 
+  INNER JOIN MIMgene ON MIMgene.phenotypeMimNumber = diseaseMIM.phenotypeMimNumber 
+  WHERE patient_id == "dOTTO";
+
+  SELECT 
+  *
+  FROM
+  diseaseMIM
+  INNER JOIN MIMgene ON MIMgene.phenotypeMimNumber = diseaseMIM.phenotypeMimNumber;
+
+*/

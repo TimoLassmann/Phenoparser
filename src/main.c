@@ -10,8 +10,8 @@ int query_omim_and_insert_results(struct parameters* param);
 
 int make_table_output(struct parameters* param);
 
-int read_phenolyzer_output(struct parameters* param);
-int enter_detailed_evidence_information(struct parameters* param);
+int read_phenolyzer_seed_gene_list(struct parameters* param);
+int read_phenolyzer_merge_gene_scores(struct parameters* param);
 int get_term_list(struct parameters* param);
 
 int main (int argc, char * argv[])
@@ -43,7 +43,8 @@ int main (int argc, char * argv[])
                 /* create output structure ...  */
                 RUN(check_if_db_exists_otherwise_create(param));
                 
-                RUN(read_phenolyzer_output(param));
+                RUN(read_phenolyzer_seed_gene_list(param));
+                RUN(read_phenolyzer_merge_gene_scores(param));
                 
                 
         }else if(strncmp(argv[1],"panel",5) == 0){
@@ -63,9 +64,7 @@ ERROR:
 
 }
 
-
-
-int read_phenolyzer_output(struct parameters* param)
+int read_phenolyzer_seed_gene_list(struct parameters* param)
 {
         FILE* f_ptr = NULL;
         char line[LINE_LEN];
@@ -154,16 +153,22 @@ int read_phenolyzer_output(struct parameters* param)
         }
         fclose(f_ptr);
 
-        RUN(enter_detailed_evidence_information(param));
+        //RUN(enter_detailed_evidence_information(param));
         
         rc = sqlite3_close(sqlite_db);
-        
+        if( rc!=SQLITE_OK ){
+                ERROR_MSG("sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
+        }
+
         return OK;
 ERROR:
+        if(f_ptr){
+                fclose(f_ptr);
+        }
         return FAIL;
 }
 
-int enter_detailed_evidence_information(struct parameters* param)
+int read_phenolyzer_merge_gene_scores(struct parameters* param)
 {
         FILE* f_ptr = NULL;
         char line[LINE_LEN];
@@ -195,12 +200,20 @@ int enter_detailed_evidence_information(struct parameters* param)
         int alloc_len = 256;
         int r,i;
 
+        sqlite3 *sqlite_db = NULL;
+        int rc;          
+
         int num_genes = 0;
 
         ASSERT(param != NULL ,"No param.");
         
         //.merge_gene_scores
         //.seed_gene_list
+
+        rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
+        if(rc!=SQLITE_OK ){
+                ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
+        }
 
         snprintf(buffer,BUFFER_LEN*10,"%s.merge_gene_scores",param->phenofile);
         
@@ -220,14 +233,19 @@ int enter_detailed_evidence_information(struct parameters* param)
                                 //fprintf(stdout,"Gene: %s\n",gene);
                                 new_gene = 0;
                                 num_genes++;
-                                if(num_genes == 10){
-                                        break;
-                                }
                         }else{
                                 if(strlen(line) == 1){
                                         new_gene = 1;
                                         description[len] = 0;
-                                        fprintf(stdout,"%s (%d)\n%s\n",gene, num_genes,description);
+
+                                        snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE INTO phenolyzerGeneData  VALUES ('%s','%s','%s');",param->patient_id,gene,description);
+                                        rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+                                        if( rc!=SQLITE_OK ){
+                                                LOG_MSG("try:%s",buffer);            
+                                                ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
+                                        }        	
+        
+                                        //fprintf(stdout,"%s (%d)\n%s\n",gene, num_genes,description);
                                         len = 0;
                                 }else{
                                         /* This is interesting. Instead of usingp
@@ -246,7 +264,7 @@ int enter_detailed_evidence_information(struct parameters* param)
                                                 snprintf(buffer,BUFFER_LEN * 10,"<a href=\"http://www.orpha.net/consor/cgi-bin/OC_Exp.php?Lng=GB&Expert=%s\">%s</a>", cap.database_id,cap.database_id);
 
                                         }else if(strncmp(cap.database_type,"umls",4) == 0){
-                                                snprintf(buffer,BUFFER_LEN * 10,"<a href=https://www.ncbi.nlm.nih.gov/medgen/%s\">%s</a>", cap.database_id,cap.database_id);
+                                                snprintf(buffer,BUFFER_LEN * 10,"<a href=\"https://www.ncbi.nlm.nih.gov/medgen/%s\">%s</a>", cap.database_id,cap.database_id);
                                                 //          C0175695
                                         }else{
                                                 snprintf(buffer,BUFFER_LEN * 10,"%s",cap.database_id);
@@ -254,7 +272,7 @@ int enter_detailed_evidence_information(struct parameters* param)
 
                                         /* create line parser line input to be concatenated with other info */
 
-                                        snprintf(append_buffer,BUFFER_LEN*10,"%s:%s %s %s %s %0.4f\n",cap.database_type, buffer, cap.data_base_name, cap.disease_description,cap.hpo_term, cap.score);
+                                        snprintf(append_buffer,BUFFER_LEN*10,"%s:%s %s %s %s %0.4f<br />",cap.database_type, buffer, cap.data_base_name, cap.disease_description,cap.hpo_term, cap.score);
                                         //fprintf(stdout,"%s\n%s\n%s\n%s\n%s\n%f (score) \n%s\n \n", cap.database_type, cap.database_id,cap.data_base_name, cap.disease_description, cap.hpo_term, cap.score,buffer);
                                         //fprintf(stdout,"%s\n",append_buffer);
                                         /* change omim id to hyperlink....  */
@@ -275,6 +293,14 @@ int enter_detailed_evidence_information(struct parameters* param)
                 line_num++;
         }
         fclose(f_ptr);
+
+        MFREE(description);
+        rc = sqlite3_close(sqlite_db);
+        if( rc!=SQLITE_OK ){
+                ERROR_MSG("sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
+
+        }
+
         
         return OK;
 ERROR:
@@ -585,7 +611,10 @@ int make_table_output(struct parameters* param)
         
        
        
-        snprintf(buffer,buffer_len,"SELECT * FROM  phenolyzer   WHERE patient_id == \"%s\" ORDER BY score DESC;",param->patient_id);
+        //snprintf(buffer,buffer_len,"SELECT * FROM  phenolyzer   WHERE patient_id == \"%s\" ORDER BY score DESC;",param->patient_id);
+
+
+        snprintf(buffer,buffer_len,"SELECT phenolyzer.patient_id ,phenolyzer.gene ,phenolyzer.identifier ,phenolyzer.score , phenolyzerGeneData.gene_evidence   FROM  phenolyzer INNER JOIN phenolyzerGeneData ON (phenolyzer.gene == phenolyzerGeneData.gene AND  phenolyzer.patient_id == phenolyzerGeneData.patient_id) WHERE phenolyzer.patient_id == \"%s\" ORDER BY score DESC;",param->patient_id);
 
 
         rc = sqlite3_prepare(sqlite_db, buffer, -1, &pStmt, 0);
@@ -788,52 +817,6 @@ ERROR:
         return FAIL;
 }
 
-
-
-
-
-
-
-
-/*
-  Some test queries 
-  INSERT INTO patient VALUES ('OTTO', 'epidermolysis bullosa','');
-
-  INSERT INTO diseaseMIM VALUES ('epidermolysis bullosa',603576);
-  INSERT INTO diseaseMIM VALUES ('epidermolysis bullosa',613815);
-
-  INSERT INTO MIMgene VALUES (603576,'TRPM1');
-  INSERT INTO MIMgene VALUES (603576,'MLSN1');
-  INSERT INTO MIMgene VALUES (603576,'CSNB1C');
-
-  INSERT INTO MIMgene VALUES (613815,'CYP21A2');
-  INSERT INTO MIMgene VALUES (613815,'CYP21');
-
-  INSERT OR IGNORE INTO MIMgene VALUES (613815,'CA21H');
-
-
-  SELECT * FROM MIMgene  AS a INNER JOIN diseaseMIM AS b ON a.phenotypeMimNumber = b.phenotypeMimNumber;
-
-
-  SELECT
-  patient_id AS ID,
-  patient.DiseaseSearch AS DISEASE,
-  MIMgene.phenotypeMimNumber AS MIMnumber,
-  diseaseMIM.phenotypeDescription AS DESC,
-  MIMgene.gene AS GENE
-  FROM
-  patient 
-  INNER JOIN diseaseMIM ON diseaseMIM.DiseaseSearch = patient.DiseaseSearch 
-  INNER JOIN MIMgene ON MIMgene.phenotypeMimNumber = diseaseMIM.phenotypeMimNumber 
-  WHERE patient_id == "dOTTO";
-
-  SELECT 
-  *
-  FROM
-  diseaseMIM
-  INNER JOIN MIMgene ON MIMgene.phenotypeMimNumber = diseaseMIM.phenotypeMimNumber;
-
-*/
 
 
 int enter_term(struct OMIM_list* ol, char* name,char* value )
