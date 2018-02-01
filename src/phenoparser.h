@@ -133,6 +133,6 @@ void free_omim(struct OMIM* omim);
 
 /* misc */
 struct rbtree_root* make_string_tree(void);
-int remove_comma(char* in);
+int remove_comma_quote(char* in);
 
 #endif

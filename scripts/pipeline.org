@@ -1315,12 +1315,14 @@ EOF
 
       reportname="Report_"$PATIENT_ID"_"$timestamp".Rmd";
 
-
+      PATHNAME=$(dirname $TEMPLATE);
+      echo "$PATHNAME";
       cat $TEMPLATE \
       | sed -e "s=VARPATIENT_ID=$PATIENT_ID=g" \
       | sed -e "s=VARGEMINI_DATABASEPATH=$GEMINI_DATABASEPATH=g" \
       | sed -e "s=VAROMIM_DATABASEPATH=$DATABASEPATH=g" \
       | sed -e "s=VARPHENOLYZER_DATABASEPATH=$PHENOLYZER_DATABASEPATH=g" \
+      | sed -e "s=VARPATHTOHPOOBO=$PATHNAME=g" \
       > $reportname
 
       R -e "rmarkdown::render('$reportname')"
@@ -1366,9 +1368,12 @@ EOF
                 library(tidyverse)
                 library(knitr)
                 library(kableExtra)
+                library(ontologyIndex)
        ```
 
-
+       ```{r loadOBO, warning = FALSE, message = FALSE, include=FALSE}
+            ontology <- get_ontology("VARPATHTOHPOOBO/hp.obo")
+       ```
        ## Extract variants and annotation from gemini
 
        In this step the following thresholds are used:
@@ -1379,7 +1384,7 @@ EOF
        ```{r Gemini, include=FALSE}
 
                 try(system("gemini query --header -q 'select chrom, start, end, gene, impact, impact_severity,
-                 cadd_scaled,polyphen_score,sift_score, clinvar_sig,max_aaf_all,sub_type,
+                 cadd_scaled,polyphen_score,sift_score, clinvar_sig,max_aaf_all,sub_type,num_het, num_hom_alt, exon, codon_change, aa_change,aa_length,
                 gts.VARPATIENT_ID, 
                 gt_depths.VARPATIENT_ID,
                 gt_quals.VARPATIENT_ID,
@@ -1399,14 +1404,14 @@ EOF
                 df = df %>% unite(pos, chrom, start, end)
 
                 df = rename(df, Severity = impact_severity)
-                df = rename(df, Poly = polyphen_score)
-                df = rename(df, Sift = sift_score)
 
                 df = rename(df, GTS = "gts.VARPATIENT_ID")
                 df = rename(df, Depth = "gt_depths.VARPATIENT_ID")
                 df = rename(df, CallQ = "gt_quals.VARPATIENT_ID")
                 df = rename(df, RefD = "gt_ref_depths.VARPATIENT_ID")
                 df = rename(df, AltD = "gt_alt_depths.VARPATIENT_ID")
+
+         
 
                 df = df %>% mutate(max_aaf_all = sprintf("%0.1e", max_aaf_all))
                 df = df %>% mutate(CallQ = sprintf("%0.0f",CallQ))
@@ -1435,6 +1440,9 @@ EOF
                 if(info[1,1] != 0){
                 terms = suppressMessages(read_csv("VARPATIENT_ID_terms.csv",col_names = FALSE))
                 colnames(terms) = c("Patient ID","Term")
+                terms$Description = ontology$name[terms$Term];
+                terms <- terms %>% filter(!str_detect(Term, "PS"))  
+
                 #datatable(terms,rownames=TRUE,filter = 'top',options = list(pageLength=50,autoWidth = TRUE,columnDefs = list(list(width = '5px', targets = "_all"))))
                 kable(terms,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
                 
@@ -1446,11 +1454,11 @@ EOF
                 info = file.info("VARPATIENT_ID_omim.csv")
                 if(info[1,1] != 0){
                   omim = read_csv("VARPATIENT_ID_omim.csv",col_names = FALSE)
-                  omim_genes = select(omim, X4,X6,X5)
-                  colnames(omim_genes) = c("OmimPanel","gene","Inheritance")
-                  omim_genes = distinct(omim_genes, OmimPanel, gene, Inheritance)
+                  omim_genes = select(omim, X4,X6,X5,X2)
+                  colnames(omim_genes) = c("OmimPanel","gene","Inheritance","PhenotypicSeries")
+                  omim_genes = distinct(omim_genes, OmimPanel, gene, Inheritance,PhenotypicSeries)
                 }else{
-                  omim_genes = tibble(OmimPanel = character(), gene = character(),Inheritance = character( ))
+                  omim_genes = tibble(OmimPanel = character(), gene = character(),Inheritance = character( ),PhenotypicSeries = character())
                 }
 
                 #df = df %>% left_join(omim_genes, by = "gene")
@@ -1479,7 +1487,7 @@ EOF
        ```{r joining... } 
              pheno <- omim_genes %>% full_join(hpo_genes, by = "gene")
 
-            pheno <-pheno %>%  group_by(gene) %>% dplyr::summarise(OmimPanel=paste(unique(OmimPanel), collapse=";"),Inheritance=paste(unique(Inheritance), collapse = ";"),PhenolyzerPanel=max(PhenolyzerPanel),evidence = paste(unique(evidence), collapse = ";")) %>% arrange(desc(PhenolyzerPanel))
+            pheno <-pheno %>%  group_by(gene) %>% dplyr::summarise(OmimPanel=paste(unique(OmimPanel), collapse="</br>"), PhenotypicSeries=paste(unique(PhenotypicSeries), collapse = "</br>"),Inheritance=paste(unique(Inheritance), collapse = "</br>"),PhenolyzerPanel=max(PhenolyzerPanel),evidence = paste(unique(evidence), collapse = "</br>")) %>% arrange(desc(PhenolyzerPanel))
 
 
              pheno <- pheno %>% replace_na(list(PhenolyzerPanel = 0.0, OmimPanel = "NA"))
@@ -1498,8 +1506,7 @@ EOF
 
                 df <- add_column(df , Rank = 1:nrow(df),.before = 1)
 
-                df  <- df  %>% select(evidence,Rank, pos, GTS, gene, Severity ,cadd_scaled, PhenolyzerPanel,OmimPanel,Inheritance,CallQ, Depth,  RefD,AltD, everything())
-                
+                df  <- df  %>% select(exon,codon_change,aa_change,aa_length,evidence,impact,polyphen_score,sift_score, clinvar_sig,max_aaf_all,sub_type,PhenotypicSeries,Rank, pos, GTS, gene, Severity ,cadd_scaled, PhenolyzerPanel,OmimPanel,Inheritance,CallQ, Depth,  RefD,AltD, everything())
 
 
        ```
@@ -1535,31 +1542,65 @@ EOF
 
        ```{r, echo=FALSE,include=TRUE}
 
-       df <- add_column(df , Toggle = "<font size=\"+2\" color=\"green\">&oplus;</font>",.before = 1)
-       button_list <- list(list(extend='colvisGroup', text="Show additional columns", show=c(15:20)),
-                           list(extend='colvisGroup', text="Hide additional columns", hide=c(15:20))
-                          
-                           )
+       df <- add_column(df , Info = "<font size=\"+2\" color=\"green\">&oplus;</font>",.before = 1)
+       
 
          
        
 
-         datatable(df,rownames=FALSE,extensions = 'Buttons',filter = 'top',escape = FALSE, 
+         datatable(df,rownames=FALSE,filter = 'top',escape = FALSE, 
          options = list(
          dom = 'Blfrtip',
-         buttons =  button_list,
          pageLength=25,
              autoWidth = FALSE,
              columnDefs = list(
-                        list(visible=FALSE, targets= c(1,15:20)),
+                        list(visible=FALSE, targets= c(1:12)),
                         list(orderable = FALSE, className = 'details-control', targets = 0)
                     )
              ),
              callback = JS("
              table.column(1).nodes().to$().css({cursor: 'pointer'});
              var format = function(d) {
-                return '<div style=\"background-color:#eee; padding: .5em;\">' +
-                d[1] + '</div>';
+                return '<h2>Consequence of variant on protein:</h2><table>' + 
+                '<tr>' + 
+                '<th>Exon</th>' + 
+                '<th>Codon Change</th>' + 
+                '<th>Amino Acid Change</th>' + 
+                '<th>Position In Protein</th>' +
+                '</tr><tr>' + 
+                '<td>' + d[1] +  '</td>' + 
+                '<td>' + d[2] +  '</td>' + 
+                '<td>' + d[3] +  '</td>' + 
+                '<td>' + d[4] +  '</td>' + 
+                '</tr></table><br><hr><h2>Evidence used by phenolyzer:</h2>' + 
+               '</div>' + '<div style=\"background-color:#eee; padding: .5em;\">' +
+                d[5] + '</div><br><hr>' + 
+                '<h2>Evidence used by OMIM:</h2><table>' + 
+                '<tr>' + 
+                '<th>OMIM disease</th>' + 
+                '<th>Inheritance</th>' + 
+                '<th>Phenotypic series</th>' + 
+                '</tr><tr>' + 
+                '<td>' + d[20] +  '</td>' + 
+                '<td>' + d[21] +  '</td>' + 
+                '<td><a href=\"https://www.omim.org/phenotypicSeries/' + d[12] + '\">' +  d[12] +  '</a></td>' +  
+                '</tr></table><br><hr>' + 
+                '<h2>More information:</h2><table>' + 
+                '<tr>' + 
+                '<th>Impact</th>' + 
+                '<th>Polyphen_score</th>' + 
+                '<th>Sift score</th>' + 
+                '<th>Clinvar Significance</th>' +
+                '<th>Max. allele frequency in any population</th>' +
+                '<th>Sub Type</th>' +
+                '</tr><tr>' + 
+                '<td>' + d[6] +  '</td>' + 
+                '<td>' + d[7] +  '</td>' + 
+                '<td>' + d[8] +  '</td>' + 
+                '<td>' + d[9] +  '</td>' + 
+               '<td>' + d[10] +  '</td>' +
+                '<td>' + d[11] +  '</td>' +
+                '</tr></table>';
              };
              table.on('click', 'td.details-control', function() {
              var td = $(this), row = table.row(td.closest('tr'));

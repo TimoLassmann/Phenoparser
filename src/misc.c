@@ -79,7 +79,7 @@ ERROR:
 }
 
 
-int remove_comma(char* in)
+int remove_comma_quote(char* in)
 {
         int i;
         int len;
@@ -88,6 +88,10 @@ int remove_comma(char* in)
                 if(in[i] == ','){
                         in[i] = '_';
                 }
+                if((int)in[i] == 39 || (int)in[i] == 64 || (int)in[i] ==  96){
+                        in[i] = '_';
+                }
         }
         return OK;
 }
+
