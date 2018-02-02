@@ -1355,24 +1355,24 @@ EOF
        Sequencing platform: VARGEMINI_DATABASEPATH
 
        <style>
-                .main-container { width: 1600px; max-width:1600px;}
+            .main-container { width: 1600px; max-width:1600px;}
        </style>
 
        ```{r setup, warning = FALSE, message = FALSE, include=FALSE}
-                # Load the packages into R
-                library(dplyr)
-                library(rlang)
-                library(stringr)
-                library(knitr)
-                library(DT)
-                library(tidyverse)
-                library(knitr)
-                library(kableExtra)
-                library(ontologyIndex)
+                     # Load the packages into R
+                     library(dplyr)
+                     library(rlang)
+                     library(stringr)
+                     library(knitr)
+                     library(DT)
+                     library(tidyverse)
+                     library(knitr)
+                     library(kableExtra)
+                     library(ontologyIndex)
        ```
 
        ```{r loadOBO, warning = FALSE, message = FALSE, include=FALSE}
-            ontology <- get_ontology("VARPATHTOHPOOBO/hp.obo")
+                 ontology <- get_ontology("VARPATHTOHPOOBO/hp.obo")
        ```
        ## Extract variants and annotation from gemini
 
@@ -1383,39 +1383,42 @@ EOF
 
        ```{r Gemini, include=FALSE}
 
-                try(system("gemini query --header -q 'select chrom, start, end, gene, impact, impact_severity,
-                 cadd_scaled,polyphen_score,sift_score, clinvar_sig,max_aaf_all,sub_type,num_het, num_hom_alt, exon, codon_change, aa_change,aa_length,
-                gts.VARPATIENT_ID, 
-                gt_depths.VARPATIENT_ID,
-                gt_quals.VARPATIENT_ID,
-                gt_ref_depths.VARPATIENT_ID,
-                gt_alt_depths.VARPATIENT_ID 
-                from variants
-                 where 
-                max_aaf_all < 0.01 AND 
-                (cadd_scaled >= 15 OR impact_severity == \"HIGH\")
-                 ' VARGEMINI_DATABASEPATH --gt-filter \"gt_depths.VARPATIENT_ID > 0\" > raw_var_table_VARPATIENT_ID.tsv", intern = TRUE, ignore.stderr = TRUE))
+                     try(system("gemini query --header -q 'select chrom, start, end, gene, impact, impact_severity,
+                      cadd_scaled,polyphen_score,sift_score, clinvar_sig,max_aaf_all,sub_type,num_het, num_hom_alt, exon, codon_change, aa_change,aa_length,
+                     gts.VARPATIENT_ID, 
+                     gt_depths.VARPATIENT_ID,
+                     gt_quals.VARPATIENT_ID,
+                     gt_ref_depths.VARPATIENT_ID,
+                     gt_alt_depths.VARPATIENT_ID 
+                     from variants
+                      where 
+                     max_aaf_all < 0.01 AND 
+                     (cadd_scaled >= 15 OR impact_severity == \"HIGH\")
+                      ' VARGEMINI_DATABASEPATH --gt-filter \"gt_depths.VARPATIENT_ID > 0\" > raw_var_table_VARPATIENT_ID.tsv", intern = TRUE, ignore.stderr = TRUE))
        ```
 
 
        ```{r postGemini, include=FALSE}
 
-                df = read_tsv("raw_var_table_VARPATIENT_ID.tsv")
-                df = df %>% unite(pos, chrom, start, end)
+                     df = read_tsv("raw_var_table_VARPATIENT_ID.tsv")
+                     df = df %>% unite(pos, chrom, start, end)
 
-                df = rename(df, Severity = impact_severity)
+                     df = rename(df, Severity = impact_severity)
 
-                df = rename(df, GTS = "gts.VARPATIENT_ID")
-                df = rename(df, Depth = "gt_depths.VARPATIENT_ID")
-                df = rename(df, CallQ = "gt_quals.VARPATIENT_ID")
-                df = rename(df, RefD = "gt_ref_depths.VARPATIENT_ID")
-                df = rename(df, AltD = "gt_alt_depths.VARPATIENT_ID")
+                     df = rename(df, GTS = "gts.VARPATIENT_ID")
+                     df = rename(df, Depth = "gt_depths.VARPATIENT_ID")
+                     df = rename(df, CallQ = "gt_quals.VARPATIENT_ID")
+                     df = rename(df, RefD = "gt_ref_depths.VARPATIENT_ID")
+                     df = rename(df, AltD = "gt_alt_depths.VARPATIENT_ID")
 
-         
+                     df$cadd_scaled = gsub("None",15.555, df$cadd_scaled)
+                     df$cadd_scaled = as.numeric(df$cadd_scaled)
 
-                df = df %>% mutate(max_aaf_all = sprintf("%0.1e", max_aaf_all))
-                df = df %>% mutate(CallQ = sprintf("%0.0f",CallQ))
-                
+                     df = df %>% mutate(max_aaf_all = sprintf("%0.1e", max_aaf_all))
+                     df = df %>% mutate(CallQ = sprintf("%0.0f",CallQ))
+                     df$CallQ = as.numeric(df$CallQ)
+
+                     
 
        ```
 
@@ -1423,7 +1426,7 @@ EOF
 
        ```{r Export Phenotype information,echo=FALSE, include=FALSE}
 
-                try(system("phenoparser  panel  --id VARPATIENT_ID --db VAROMIM_DATABASEPATH --out VARPATIENT_ID"))
+                     try(system("phenoparser  panel  --id VARPATIENT_ID --db VAROMIM_DATABASEPATH --out VARPATIENT_ID"))
 
 
        ```
@@ -1436,86 +1439,90 @@ EOF
 
        ```{r make term table, echo=FALSE,include=TRUE}
 
-                info = file.info("VARPATIENT_ID_terms.csv")
-                if(info[1,1] != 0){
-                terms = suppressMessages(read_csv("VARPATIENT_ID_terms.csv",col_names = FALSE))
-                colnames(terms) = c("Patient ID","Term")
-                terms$Description = ontology$name[terms$Term];
-                terms <- terms %>% filter(!str_detect(Term, "PS"))  
+                     info = file.info("VARPATIENT_ID_terms.csv")
+                     if(info[1,1] != 0){
+                     terms = suppressMessages(read_csv("VARPATIENT_ID_terms.csv",col_names = FALSE))
+                     colnames(terms) = c("Patient ID","Term")
+                     terms$Description = ontology$name[terms$Term];
+                     terms <- terms %>% filter(!str_detect(Term, "PS"))  
 
-                #datatable(terms,rownames=TRUE,filter = 'top',options = list(pageLength=50,autoWidth = TRUE,columnDefs = list(list(width = '5px', targets = "_all"))))
-                kable(terms,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
-                
-                }
-       ```
+                     #datatable(terms,rownames=TRUE,filter = 'top',options = list(pageLength=50,autoWidth = TRUE,columnDefs = list(list(width = '5px', targets = "_all"))))
+                     kable(terms,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
+                     
+                     }
+            ```
 
        ```{r Add OMIM Phenotype information to df , include=FALSE}
 
-                info = file.info("VARPATIENT_ID_omim.csv")
-                if(info[1,1] != 0){
-                  omim = read_csv("VARPATIENT_ID_omim.csv",col_names = FALSE)
-                  omim_genes = select(omim, X4,X6,X5,X2)
-                  colnames(omim_genes) = c("OmimPanel","gene","Inheritance","PhenotypicSeries")
-                  omim_genes = distinct(omim_genes, OmimPanel, gene, Inheritance,PhenotypicSeries)
-                }else{
-                  omim_genes = tibble(OmimPanel = character(), gene = character(),Inheritance = character( ),PhenotypicSeries = character())
-                }
+                     info = file.info("VARPATIENT_ID_omim.csv")
+                     if(info[1,1] != 0){
+                       omim = read_csv("VARPATIENT_ID_omim.csv",col_names = FALSE)
+                       omim_genes = select(omim, X4,X6,X5,X2)
+                       colnames(omim_genes) = c("OmimPanel","gene","Inheritance","PhenotypicSeries")
+                       omim_genes = distinct(omim_genes, OmimPanel, gene, Inheritance,PhenotypicSeries)
+                     }else{
+                       omim_genes = tibble(OmimPanel = character(), gene = character(),Inheritance = character( ),PhenotypicSeries = character())
+                     }
 
-                #df = df %>% left_join(omim_genes, by = "gene")
+                     #df = df %>% left_join(omim_genes, by = "gene")
 
-       ```
+            ```
 
 
        ```{r Add Phenolyzer information to df , include=FALSE}
 
-                info = file.info("VARPATIENT_ID_phenolyzer.csv")
-                if(info[1,1] != 0){
-                  hpo = read_csv("VARPATIENT_ID_phenolyzer.csv",col_names = FALSE)
-                  hpo_genes = select(hpo, X4,X2,X5)
-                  colnames(hpo_genes) = c("PhenolyzerPanel","gene","evidence")
-                  hpo_genes = distinct(hpo_genes, PhenolyzerPanel, gene, evidence)
+                     info = file.info("VARPATIENT_ID_phenolyzer.csv")
+                     if(info[1,1] != 0){
+                       hpo = read_csv("VARPATIENT_ID_phenolyzer.csv",col_names = FALSE)
+                       hpo_genes = select(hpo, X4,X2,X5)
+                       colnames(hpo_genes) = c("PhenolyzerPanel","gene","evidence")
+                       hpo_genes = distinct(hpo_genes, PhenolyzerPanel, gene, evidence)
 
-                }else{
-                   hpo_genes  = tibble(PhenolyzerPanel = numeric(), gene = character(), evidence = character()) 
-                }
-                
-                #df = df %>% left_join(hpo_genes, by = "gene")
-
-
-       ```
-
-       ```{r joining... } 
-             pheno <- omim_genes %>% full_join(hpo_genes, by = "gene")
-
-            pheno <-pheno %>%  group_by(gene) %>% dplyr::summarise(OmimPanel=paste(unique(OmimPanel), collapse="</br>"), PhenotypicSeries=paste(unique(PhenotypicSeries), collapse = "</br>"),Inheritance=paste(unique(Inheritance), collapse = "</br>"),PhenolyzerPanel=max(PhenolyzerPanel),evidence = paste(unique(evidence), collapse = "</br>")) %>% arrange(desc(PhenolyzerPanel))
+                     }else{
+                        hpo_genes  = tibble(PhenolyzerPanel = numeric(), gene = character(), evidence = character()) 
+                     }
+                     
+                     #df = df %>% left_join(hpo_genes, by = "gene")
 
 
-             pheno <- pheno %>% replace_na(list(PhenolyzerPanel = 0.0, OmimPanel = "NA"))
+            ```
 
-             df = df %>% left_join(pheno, by = "gene")
-             
-       ```
+       ```{r joining... , include=FALSE} 
+                  pheno <- omim_genes %>% full_join(hpo_genes, by = "gene")
+
+                 pheno <-pheno %>%  group_by(gene) %>% dplyr::summarise(OmimPanel=paste(unique(OmimPanel), collapse="</br>"), PhenotypicSeries=paste(unique(PhenotypicSeries), collapse = "</br>"),Inheritance=paste(unique(Inheritance), collapse = "</br>"),PhenolyzerPanel=max(PhenolyzerPanel),evidence = paste(unique(evidence), collapse = "</br>")) %>% arrange(desc(PhenolyzerPanel))
+
+
+                  pheno <- pheno %>% replace_na(list(PhenolyzerPanel = 0.0, OmimPanel = "NA"))
+
+                  df = df %>% left_join(pheno, by = "gene")
+                  
+            ```
        ## Ranking of variants
 
-       The table is sorted by variants in genes associated with the patients disease phenotype and then by descending CADD score.
+       The table is sorted by variants in genes associated with the patients disease
+       phenotype and then by descending CADD score. In addition, all variants occuring
+       in more than 5 patients are given a low priority. Variants with a call quality of less than 10 are discarded.
 
-       ```{r Sorting,include=TRUE}
-                
-                #df <- df %>% group_by(OmimPanel,PhenolyzerPanel)  %>% arrange(OmimPanel)  %>%  arrange(desc(PhenolyzerPanel))  %>%  arrange(desc(cadd_scaled))
-                df <- arrange(df,desc(PhenolyzerPanel * 1000 +  str_length(OmimPanel)),OmimPanel ,desc(PhenolyzerPanel), desc(cadd_scaled))
+       ```{r Sorting,include=FALSE}
+                     
+                     #df <- df %>% group_by(OmimPanel,PhenolyzerPanel)  %>% arrange(OmimPanel)  %>%  arrange(desc(PhenolyzerPanel))  %>%  arrange(desc(cadd_scaled))
 
-                df <- add_column(df , Rank = 1:nrow(df),.before = 1)
+                     df <- filter(df, CallQ > 10)
+                     df <- arrange(df,((num_het+ num_hom_alt) > 5) , desc(str_length(OmimPanel)> 1), desc(PhenolyzerPanel),desc(cadd_scaled)) #OmimPanel ,desc(PhenolyzerPanel), desc(cadd_scaled))
 
-                df  <- df  %>% select(exon,codon_change,aa_change,aa_length,evidence,impact,polyphen_score,sift_score, clinvar_sig,max_aaf_all,sub_type,PhenotypicSeries,Rank, pos, GTS, gene, Severity ,cadd_scaled, PhenolyzerPanel,OmimPanel,Inheritance,CallQ, Depth,  RefD,AltD, everything())
+                     df <- add_column(df , Rank = 1:nrow(df),.before = 1)
+
+                     df  <- df  %>% select(exon,codon_change,aa_change,aa_length,evidence,impact,polyphen_score,sift_score, clinvar_sig,max_aaf_all,sub_type,PhenotypicSeries,Rank, pos, GTS, gene, Severity ,cadd_scaled, PhenolyzerPanel,OmimPanel,Inheritance,CallQ, Depth,  RefD,AltD, everything())
 
 
-       ```
+            ```
 
 
 
        ```{r Write to tsv, include=FALSE}
 
-                write.table(df, file = "VARPATIENT_ID_report_V2.tsv", append = FALSE, quote = FALSE, sep = "\t",na = "NA",row.names = FALSE,col.names = TRUE) 
+                     write.table(df, file = "VARPATIENT_ID_report_V2.tsv", append = FALSE, quote = FALSE, sep = "\t",na = "NA",row.names = FALSE,col.names = TRUE) 
 
        ```
        ## List of candidate variants 
@@ -1524,100 +1531,121 @@ EOF
 
        ```{r Option table,echo=FALSE, include=TRUE}
 
-       friends_data <- data_frame(
-         Column = c("Rank", "pos", "GTS", "PhenolyzerPanel","OmimPanel","CallQ","Depth", "RefD","AltD"),
-         Description = c("rank of variant after sorting the list according to the criteria above",
-                           "genomic coordinates",
-                           "genotpye",
-                           "contains a score for genes returned by phenolyzer",
-                           "contain genes associated with the patients disease phenotype",
-                           "Phred scaled call quality", 
-                           "Read depth",
-                           "Depth of reference allele",
-                           "Depth of alternate allele"
-                     ),                       
-       )          
-       kable(friends_data,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
+            friends_data <- data_frame(
+              Column = c("Rank", "pos", "GTS", "PhenolyzerPanel","OmimPanel","CallQ","Depth", "RefD","AltD","cadd_scaled"),
+              Description = c("rank of variant after sorting the list according to the criteria above",
+                                "genomic coordinates",
+                                "genotpye",
+                                "contains a score for genes returned by phenolyzer",
+                                "contain genes associated with the patients disease phenotype",
+                                "Phred scaled call quality", 
+                                "Read depth",
+                                "Depth of reference allele",
+                                "Depth of alternate allele",
+                                "Scaled CADD score - NOTE: for visualization purposes I give all indels a score of 15.555 and color the cell blue."
+                          ),                       
+            )          
+            kable(friends_data,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
        ```
 
        ```{r, echo=FALSE,include=TRUE}
 
-       df <- add_column(df , Info = "<font size=\"+2\" color=\"green\">&oplus;</font>",.before = 1)
-       
+            df <- add_column(df , Info = "<font size=\"+2\" color=\"green\">&oplus;</font>",.before = 1)
 
-         
-       
 
-         datatable(df,rownames=FALSE,filter = 'top',escape = FALSE, 
-         options = list(
-         dom = 'Blfrtip',
-         pageLength=25,
-             autoWidth = FALSE,
-             columnDefs = list(
-                        list(visible=FALSE, targets= c(1:12)),
-                        list(orderable = FALSE, className = 'details-control', targets = 0)
-                    )
-             ),
-             callback = JS("
-             table.column(1).nodes().to$().css({cursor: 'pointer'});
-             var format = function(d) {
-                return '<h2>Consequence of variant on protein:</h2><table>' + 
-                '<tr>' + 
-                '<th>Exon</th>' + 
-                '<th>Codon Change</th>' + 
-                '<th>Amino Acid Change</th>' + 
-                '<th>Position In Protein</th>' +
-                '</tr><tr>' + 
-                '<td>' + d[1] +  '</td>' + 
-                '<td>' + d[2] +  '</td>' + 
-                '<td>' + d[3] +  '</td>' + 
-                '<td>' + d[4] +  '</td>' + 
-                '</tr></table><br><hr><h2>Evidence used by phenolyzer:</h2>' + 
-               '</div>' + '<div style=\"background-color:#eee; padding: .5em;\">' +
-                d[5] + '</div><br><hr>' + 
-                '<h2>Evidence used by OMIM:</h2><table>' + 
-                '<tr>' + 
-                '<th>OMIM disease</th>' + 
-                '<th>Inheritance</th>' + 
-                '<th>Phenotypic series</th>' + 
-                '</tr><tr>' + 
-                '<td>' + d[20] +  '</td>' + 
-                '<td>' + d[21] +  '</td>' + 
-                '<td><a href=\"https://www.omim.org/phenotypicSeries/' + d[12] + '\">' +  d[12] +  '</a></td>' +  
-                '</tr></table><br><hr>' + 
-                '<h2>More information:</h2><table>' + 
-                '<tr>' + 
-                '<th>Impact</th>' + 
-                '<th>Polyphen_score</th>' + 
-                '<th>Sift score</th>' + 
-                '<th>Clinvar Significance</th>' +
-                '<th>Max. allele frequency in any population</th>' +
-                '<th>Sub Type</th>' +
-                '</tr><tr>' + 
-                '<td>' + d[6] +  '</td>' + 
-                '<td>' + d[7] +  '</td>' + 
-                '<td>' + d[8] +  '</td>' + 
-                '<td>' + d[9] +  '</td>' + 
-               '<td>' + d[10] +  '</td>' +
-                '<td>' + d[11] +  '</td>' +
-                '</tr></table>';
-             };
-             table.on('click', 'td.details-control', function() {
-             var td = $(this), row = table.row(td.closest('tr'));
-             if (row.child.isShown()) {
-                row.child.hide();
-                td.html('<font size=\"+2\" color=\"green\">&oplus;</font>');
-             } else {
-                row.child(format(row.data())).show();
-                td.html('<font size=\"+2\" color=\"red\">&CircleMinus;</font>');
-             }
-             });"
-             )) %>%            formatStyle(
-             'Severity',
-             backgroundColor = styleEqual(c('HIGH','MED','LOW') , c( 'lightpink', 'lightgreen', 'lightblue')
-             )
-           ) 
-       ```
+              
+
+
+              datatable(df,rownames=FALSE,filter = 'top',escape = FALSE, 
+              options = list(
+              dom = 'Blfrtip',
+              pageLength=25,
+                  autoWidth = FALSE,
+                  columnDefs = list(
+                             list(visible=FALSE, targets= c(1:12)),
+                             list(orderable = FALSE, className = 'details-control', targets = 0)
+                         )
+                  ),
+                  callback = JS("
+                  table.column(1).nodes().to$().css({cursor: 'pointer'});
+                  var format = function(d) {
+                     return '<h2>Consequence of variant on protein:</h2><table>' + 
+                     '<tr>' + 
+                     '<th>Exon</th>' + 
+                     '<th>Codon Change</th>' + 
+                     '<th>Amino Acid Change</th>' + 
+                     '<th>Position In Protein</th>' +
+                     '</tr><tr>' + 
+                     '<td>' + d[1] +  '</td>' + 
+                     '<td>' + d[2] +  '</td>' + 
+                     '<td>' + d[3] +  '</td>' + 
+                     '<td>' + d[4] +  '</td>' + 
+                     '</tr></table><br><hr><h2>Evidence used by phenolyzer:</h2>' + 
+                    '</div>' + '<div style=\"background-color:#eee; padding: .5em;\">' +
+                     d[5] + '</div><br><hr>' + 
+                     '<h2>Evidence used by OMIM:</h2><table>' + 
+                     '<tr>' + 
+                     '<th>OMIM disease</th>' + 
+                     '<th>Inheritance</th>' + 
+                     '<th>Phenotypic series</th>' + 
+                     '</tr><tr>' + 
+                     '<td>' + d[20] +  '</td>' + 
+                     '<td>' + d[21] +  '</td>' + 
+                     '<td><a href=\"https://www.omim.org/phenotypicSeries/' + d[12] + '\">' +  d[12] +  '</a></td>' +  
+                     '</tr></table><br><hr>' + 
+                     '<h2>More information:</h2><table>' + 
+                     '<tr>' + 
+                     '<th>Impact</th>' + 
+                     '<th>Polyphen_score</th>' + 
+                     '<th>Sift score</th>' + 
+                     '<th>Clinvar Significance</th>' +
+                     '<th>Max. allele frequency in any population</th>' +
+                     '<th>Sub Type</th>' +
+                     '</tr><tr>' + 
+                     '<td>' + d[6] +  '</td>' + 
+                     '<td>' + d[7] +  '</td>' + 
+                     '<td>' + d[8] +  '</td>' + 
+                     '<td>' + d[9] +  '</td>' + 
+                    '<td>' + d[10] +  '</td>' +
+                     '<td>' + d[11] +  '</td>' +
+                     '</tr></table>';
+                  };
+                  table.on('click', 'td.details-control', function() {
+                  var td = $(this), row = table.row(td.closest('tr'));
+                  if (row.child.isShown()) {
+                     row.child.hide();
+                     td.html('<font size=\"+2\" color=\"green\">&oplus;</font>');
+                  } else {
+                     row.child(format(row.data())).show();
+                     td.html('<font size=\"+2\" color=\"red\">&CircleMinus;</font>');
+                  }
+                  });"
+                  )) %>%            formatStyle(
+                  'Severity',
+                  backgroundColor = styleEqual(c('HIGH','MED','LOW') , c( 'lightpink', 'lightgreen', 'lightblue')
+                  )
+                  ) %>% formatStyle(
+                  'cadd_scaled',
+                  backgroundColor = styleInterval(c(15.554,15.556), c('white', 'lightblue', 'white')
+                  )
+                  ) %>% formatStyle(
+                  'num_het',
+                  backgroundColor = styleInterval(c(4.9), c('white', 'lightpink')
+                  )
+                  ) %>% formatStyle(
+                  'num_hom_alt',
+                  backgroundColor = styleInterval(c(4.9), c('white', 'lightpink')
+                  )
+                  ) 
+
+
+
+
+
+
+
+
+            ```
        End.
      #+END_SRC
      
