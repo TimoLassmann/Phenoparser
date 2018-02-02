@@ -1,4 +1,3 @@
- 
 
 #include "phenoparser.h"
 
@@ -17,40 +16,39 @@ int get_term_list(struct parameters* param);
 int main (int argc, char * argv[])
 {
         struct parameters* param = NULL;       
+        
         if(argc == 1){
                 /* print help */
                 tlog.echo_build_config();
                 RUN(print_global_help(argc,argv));
                 return OK;
         }
-        
         if(strncmp(argv[1],"insert",6) == 0){
                 /* get parameters */
                 RUNP(param = get_insert_param(argc,argv));
                 /* create output structure ...  */
                 RUN(check_if_db_exists_otherwise_create(param));
-
                 RUN(query_omim_and_insert_results(param));
                 
         }else if(strncmp(argv[1],"termlist",8) == 0){
-                RUNP(param = get_termlist_param(argc,argv));
 
+                RUNP(param = get_termlist_param(argc,argv));
                 RUN(check_if_db_exists_otherwise_create(param));
-                
                 RUN(get_term_list(param));
+
         }else if(strncmp(argv[1],"readphe",7) == 0){
+
                 RUNP(param = get_readphe_param(argc,argv));
                 /* create output structure ...  */
                 RUN(check_if_db_exists_otherwise_create(param));
-                
                 RUN(read_phenolyzer_seed_gene_list(param));
                 RUN(read_phenolyzer_merge_gene_scores(param));
                 
-                
         }else if(strncmp(argv[1],"panel",5) == 0){
+
                 RUNP(param = get_panel_param(argc,argv));
                 RUN(make_table_output(param));
-                        
+                
         }else{
                 ERROR_MSG("Option %s not recognized.",argv[1]);
         }
@@ -70,43 +68,41 @@ int read_phenolyzer_seed_gene_list(struct parameters* param)
         char line[LINE_LEN];
         int line_num = 1;
         int r;
-
+        
         sqlite3 *sqlite_db = NULL;
         int rc;   
         char buffer[BUFFER_LEN*10];
-
         
         int Rank;
         char Gene[BUFFER_LEN];
         int Id;
         double Score;
         char Status[BUFFER_LEN];
+        char* sql_query = NULL;
+        int sql_len = 0;
 
         
         ASSERT(param != NULL ,"No param.");
-
-
+        
         rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
         if(rc!=SQLITE_OK ){
                 ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
         }
         
-
         //.merge_gene_scores
         //.seed_gene_list
-
+        
         snprintf(buffer,BUFFER_LEN*10,"%s.seed_gene_list",param->phenofile);
         if(!my_file_exists(buffer)){
                 ERROR_MSG("File: %s does not exist!",buffer);
         }
-
+        
         RUNP(f_ptr = fopen(buffer,"r"));
-
+        
         // SEED LIST looks like this: 
         //Rank	Gene	ID	Score
         // 1 FGD1	2245	1
         // 2 UBE3A	7337	0.02885
-
         // FINAL list (I presume expanded like this:
         //Rank	Gene	ID	Score	Status
         //1	FGD1	2245	1	SeedGene
@@ -129,23 +125,15 @@ int read_phenolyzer_seed_gene_list(struct parameters* param)
                         if(r != 4 && r != 5 ){
                                 ERROR_MSG("Problem reading (%d): %s",r,line);
                         }
-
-
-
                         /* CREATE TABLE phenolyzer(patient_id TEXT NOT NULL,gene TEXT NOT NULL,identifier INT,score REAL, status  unique (patient_id,gene);  */
                         if(Rank <= 1000){
-                                snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE INTO phenolyzer VALUES ('%s','%s','%d','%e','%s');",param->patient_id,Gene,Id,Score,Status );
-                                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+                                RUNP(sql_query = create_query_string(sql_query,&sql_len,"INSERT OR IGNORE INTO phenolyzer VALUES ('%s','%s','%d','%e','%s');",param->patient_id,Gene,Id,Score,Status ));
+                                rc = sqlite3_exec(sqlite_db, sql_query, 0, 0, 0);
                                 if( rc!=SQLITE_OK ){
-                                        LOG_MSG("try:%s",buffer);            
+                                        LOG_MSG("try:%s",sql_query);            
                                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                                 }
                         }
-
-
-        
-                        //}
-                        
                         //sscanf( dtm, "%s %s %d  %d", weekday, month, &day, &year );
                 }
 
@@ -159,9 +147,12 @@ int read_phenolyzer_seed_gene_list(struct parameters* param)
         if( rc!=SQLITE_OK ){
                 ERROR_MSG("sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
         }
-
+        MFREE(sql_query);
         return OK;
 ERROR:
+        if(sql_query){
+                MFREE(sql_query);
+        }
         if(f_ptr){
                 fclose(f_ptr);
         }
@@ -196,9 +187,11 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
          * FALSE" option to the R DT datatable call */
         
         char* description = NULL;
-        int len;
-        int alloc_len = 256;
-        int r,i;
+        char* sql_query = NULL;
+        int description_len;
+        int description_alloc_len = 256;
+        int sql_len = 0;
+        int i;
 
         sqlite3 *sqlite_db = NULL;
         int rc;          
@@ -214,42 +207,45 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
         if(rc!=SQLITE_OK ){
                 ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
         }
-
+        
         snprintf(buffer,BUFFER_LEN*10,"%s.merge_gene_scores",param->phenofile);
         
         if(!my_file_exists(buffer)){
                 ERROR_MSG("File: %s does not exist!",buffer);
         }
 
-        MMALLOC(description,sizeof(char) * alloc_len);
-        len = 0;
+        MMALLOC(description,sizeof(char) * description_alloc_len);
+        description_len = 0;
+        //MMALLOC(sql_query_buffer,sizeof(char) *sql_query_buffer_alloc_len );
+        
                 
         RUNP(f_ptr = fopen(buffer,"r"));
         line_num = 1;
         while(fgets(line, LINE_LEN, f_ptr)){
                 if(line_num> 1){
                         if(new_gene){
-                                r = sscanf(line,"%"xstr(BUFFER_LEN)"s\t",gene);
+                                sscanf(line,"%"xstr(BUFFER_LEN)"s\t",gene);
                                 //fprintf(stdout,"Gene: %s\n",gene);
+                                
                                 new_gene = 0;
                                 num_genes++;
                         }else{
                                 if(strlen(line) == 1){
                                         new_gene = 1;
-                                        description[len] = 0;
+                                        description[description_len] = 0;
 
-                                        snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE INTO phenolyzerGeneData  VALUES ('%s','%s','%s');",param->patient_id,gene,description);
-                                        rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+                                        RUNP(sql_query = create_query_string(sql_query,&sql_len,"INSERT OR IGNORE INTO phenolyzerGeneData  VALUES ('%s','%s','%s');",param->patient_id,gene,description));
+                                        
+                                        rc = sqlite3_exec(sqlite_db, sql_query, 0, 0, 0);
                                         if( rc!=SQLITE_OK ){
-                                                LOG_MSG("try:%s",buffer);            
+                                                LOG_MSG("try:%s",sql_query);            
                                                 ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                                         }        	
         
                                         //fprintf(stdout,"%s (%d)\n%s\n",gene, num_genes,description);
-                                        len = 0;
+                                        description_len = 0;
                                 }else{
-                                        /* This is interesting. Instead of usingp
-
+                                        /* This is interesting. Instead of using
                                          * %s etc is it possible to tell scanf
                                          * function to match everything
                                          * excluding a particular character. For
@@ -257,7 +253,7 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
                                          * until a : is encountered. The next :
                                          * means scanf w2ill skip over this
                                          * character. */
-                                        r = sscanf(line,"%"xstr(BUFFER_LEN)"[^:]:%"xstr(BUFFER_LEN)"[^ ] %"xstr(BUFFER_LEN)"[^\t]\t%"xstr(BUFFER_LEN)"[^\t]\t%"xstr(BUFFER_LEN)"[^\t]\t%lf", cap.database_type,cap.database_id,cap.data_base_name,cap.disease_description,cap.hpo_term,&cap.score);
+                                        sscanf(line,"%"xstr(BUFFER_LEN)"[^:]:%"xstr(BUFFER_LEN)"[^ ] %"xstr(BUFFER_LEN)"[^\t]\t%"xstr(BUFFER_LEN)"[^\t]\t%"xstr(BUFFER_LEN)"[^\t]\t%lf", cap.database_type,cap.database_id,cap.data_base_name,cap.disease_description,cap.hpo_term,&cap.score);
                                         if(strncmp(cap.database_type,"OMIM",4) == 0){
                                                 snprintf(buffer,BUFFER_LEN * 10,"<a href=\"https://www.omim.org/entry/%s\">%s</a>", cap.database_id,cap.database_id);
                                         }else if(strncmp(cap.database_type,"ORPHANET",8) == 0){
@@ -277,13 +273,14 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
                                         //fprintf(stdout,"%s\n",append_buffer);
                                         /* change omim id to hyperlink....  */
                                         for(i = 0; i < strlen(append_buffer);i++){
-                                                description[len] = append_buffer[i];
-                                                len++;
-                                                if(len == alloc_len){
-                                                        alloc_len = alloc_len << 1;
-                                                        MREALLOC(description,sizeof(char) * alloc_len);
+                                                description[description_len] = append_buffer[i];
+                                                description_len++;
+                                                if(description_len == description_alloc_len){
+                                                        description_alloc_len = description_alloc_len << 1;
+                                                        MREALLOC(description,sizeof(char) * description_alloc_len);
                                                 }
                                         }
+                                        append_buffer[0] = 0;
                                         /* DPRINTF3("%d %s",strlen(line),line); */
                                 }
                         }
@@ -295,6 +292,7 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
         fclose(f_ptr);
 
         MFREE(description);
+        MFREE(sql_query);
         rc = sqlite3_close(sqlite_db);
         if( rc!=SQLITE_OK ){
                 ERROR_MSG("sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
@@ -310,6 +308,9 @@ ERROR:
         if(description){
                 MFREE(description);
         }
+        if(sql_query){
+                MFREE(sql_query);
+        }
         return FAIL;
 }
 
@@ -321,10 +322,9 @@ ERROR:
 int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, char* search_term, struct rbtree_root* series)
 {
         sqlite3 *sqlite_db = NULL;
-        int rc;          
-
-        char buffer[BUFFER_LEN*10];
-        
+        int rc;
+        char* sql_query = NULL;
+        int sql_len = 0;
         int i,j,c;
         
         struct string_struct* tmp = NULL;
@@ -338,10 +338,11 @@ int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, ch
         if(rc!=SQLITE_OK ){
                 ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
         }
-        snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE INTO patient  VALUES ('%s','%s');",param->patient_id,search_term);
-        rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+
+        RUNP(sql_query = create_query_string(sql_query,&sql_len,"INSERT OR IGNORE INTO patient  VALUES ('%s','%s');",param->patient_id,search_term));
+        rc = sqlite3_exec(sqlite_db, sql_query, 0, 0, 0);
         if( rc!=SQLITE_OK ){
-                LOG_MSG("try:%s",buffer);            
+                LOG_MSG("try:%s",sql_query);            
                 ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
         }        	
         
@@ -349,20 +350,20 @@ int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, ch
         LOG_MSG("Found: %d associations.",ol->num_entries);
         c = 0;
         for (i = 0; i <= ol->num_entries;i++){
-                snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE INTO diseaseMIM VALUES ('%s','%s','%s','%s');", search_term,  ol->terms[i]->phenotypeMimNumber,ol->terms[i]->phenotype,ol->terms[i]->phenotypeInheritance );
+                RUNP(sql_query = create_query_string(sql_query,&sql_len,"INSERT OR IGNORE INTO diseaseMIM VALUES ('%s','%s','%s','%s');", search_term,  ol->terms[i]->phenotypeMimNumber,ol->terms[i]->phenotype,ol->terms[i]->phenotypeInheritance ));
                 
-                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+                rc = sqlite3_exec(sqlite_db, sql_query, 0, 0, 0);
                 if( rc!=SQLITE_OK ){
-                        LOG_MSG("try:%s",buffer);
+                        LOG_MSG("try:%s",sql_query);
                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }
                 for(j = 0; j < MAX_ALT_GENE_NAMES;j++){
                         if(strcmp(ol->terms[i]->geneSymbols[j],"NA")){
                                 c++;
-                                snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE  INTO MIMgene VALUES ('%s','%s');", ol->terms[i]->phenotypeMimNumber,ol->terms[i]->geneSymbols[j]);
-                                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+                                RUNP(sql_query = create_query_string(sql_query,&sql_len,"INSERT OR IGNORE  INTO MIMgene VALUES ('%s','%s');", ol->terms[i]->phenotypeMimNumber,ol->terms[i]->geneSymbols[j]));
+                                rc = sqlite3_exec(sqlite_db, sql_query, 0, 0, 0);
                                 if( rc!=SQLITE_OK ){
-                                        LOG_MSG("try:%s",buffer);
+                                        LOG_MSG("try:%s",sql_query);
                                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                                 }
                                 if(series){
@@ -374,22 +375,27 @@ int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, ch
                                         tmp = NULL;
                                 }
                                 
-                                fprintf(stdout,"%s %s %s %s %s\n",ol->terms[i]->phenotypeInheritance,  ol->terms[i]->phenotype,ol->terms[i]->phenotypeMimNumber, ol->terms[i]->geneSymbols[j], ol->terms[i]->phenotypicSeriesNumber);
+                                /* fprintf(stdout,"%s %s %s %s %s\n",ol->terms[i]->phenotypeInheritance,  ol->terms[i]->phenotype,ol->terms[i]->phenotypeMimNumber, ol->terms[i]->geneSymbols[j], ol->terms[i]->phenotypicSeriesNumber); */
                         }
                 }
         }
         LOG_MSG("Found: %d gene symbols.",c);
               
         rc = sqlite3_close(sqlite_db);
+        MFREE(sql_query);
         return OK;
 ERROR:
+        if(sql_query){
+                MFREE(sql_query);
+        }
         return FAIL;
 }
 
 
 int get_term_list(struct parameters* param)
 {
-        char buffer[BUFFER_LEN*10];
+        char* sql_query = NULL;
+        int sql_len = 0;
         sqlite3 *sqlite_db = NULL;
         int rc;          
 
@@ -492,10 +498,10 @@ int get_term_list(struct parameters* param)
         }
 
         for(i = 0 ; i< num_terms;i++){
-                snprintf(buffer,BUFFER_LEN*10,"INSERT OR IGNORE INTO patient  VALUES ('%s','%s');",param->patient_id,term_list[i]);
-                rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
+                RUNP(sql_query = create_query_string(sql_query,&sql_len,"INSERT OR IGNORE INTO patient  VALUES ('%s','%s');",param->patient_id,term_list[i]));
+                rc = sqlite3_exec(sqlite_db, sql_query, 0, 0, 0);
                 if( rc!=SQLITE_OK ){
-                        LOG_MSG("try:%s",buffer);            
+                        LOG_MSG("try:%s",sql_query);            
                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }        	
         
@@ -512,7 +518,7 @@ int get_term_list(struct parameters* param)
                 MFREE(term_list[i]);
         }
         MFREE(term_list);
-
+        MFREE(sql_query);
         
         return OK;
 ERROR:
@@ -524,6 +530,9 @@ ERROR:
                         MFREE(term_list[i]);
                 }
                 MFREE(term_list);
+        }
+        if(sql_query){
+                MFREE(sql_query);
         }
         return FAIL;
 }

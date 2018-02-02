@@ -2,7 +2,43 @@
 #include "phenoparser.h"
 
                                
+char* create_query_string(char* query,int* query_len,const char * format, ...)
+{
+        va_list args;
+        
+        int n;
+        int alloc_len = *query_len;
 
+        if(!alloc_len || query == NULL){
+                alloc_len = 256;
+                MMALLOC(query,sizeof(char) * alloc_len);
+                *query_len = alloc_len;
+        }
+        
+                
+        
+        while(1) {
+                query[0] = 0;
+                va_start(args, format);
+                n = vsnprintf(query, alloc_len, format, args);
+                va_end(args);
+                
+                if(n > -1 && n < alloc_len){
+                    
+                        return query;
+                }
+
+                alloc_len = alloc_len * 2;
+                if(alloc_len > 1000000000){
+                        ERROR_MSG("query string exceeds SQLITE limits!");
+                }
+                MREALLOC(query,sizeof(char) * alloc_len);
+                *query_len = alloc_len;
+        }
+        return query;
+ERROR:
+        return NULL;
+}
 
 
 int check_if_db_exists_otherwise_create(struct parameters* param)

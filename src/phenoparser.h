@@ -111,6 +111,8 @@ int phenotype_series_search(struct parameters* param, char* search_term);
 int search_and_insert_disease(struct parameters* param, char* search_term, struct rbtree_root* series);
 
 /* database stuff */
+char* create_query_string(char* query,int* query_len,const char * format, ...);
+
 
 int check_if_db_exists_otherwise_create(struct parameters* param);
 
