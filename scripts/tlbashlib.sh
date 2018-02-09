@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # thanks to http://tech.franzone.blog/2008/08/25/bash-script-init-style-status-message/
 # Column number to place the status message

@@ -1,4 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-export PATH=$PATH:~/gemini/anaconda/bin
-export PATH=$PATH:~/bin
+#export PATH=$PATH:~/bin
+GEMINIBIN="~/pipeline/gemini/data/anaconda/bin"
+SCRIPTS=~"/pipeline/scripts"
+BCFTOOLS="/usr/local/src/bcftools-1.6/"
+HTSLIB="/usr/local/src/htslib-1.6/"
+GRABIX="/usr/local/src/grabix/grabix-master/"
+DOCKERCMD="sudo docker"
+GEMINI_TMP="/home/richard/data/patient_analysis/geminitmp"
+
+# source tbashlib
+. $SCRIPTS/tlbashlib.sh
+. $SCRIPTS/common.sh
