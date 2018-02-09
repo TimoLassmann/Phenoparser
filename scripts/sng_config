@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export PATH=$PATH:~/gemini/anaconda/bin
+export PATH=$PATH:~/bin
