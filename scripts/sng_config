@@ -12,3 +12,5 @@ GEMINI_TMP="/home/richard/data/patient_analysis/geminitmp"
 # source tbashlib
 . $SCRIPTS/tlbashlib.sh
 . $SCRIPTS/common.sh
+
+export PATH=$PATH:$GEMINIBIN:$SCRIPTS:$BCFTOOLS:$HTSLIB:$GRABIX
