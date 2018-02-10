@@ -73,24 +73,18 @@ In this step the following thresholds are used:
               df = df %>% mutate(CallQ = sprintf("%0.0f",CallQ))
               df$CallQ = as.numeric(df$CallQ)
 
-              
 
 ```
-
-
 
 ```{r Export Phenotype information,echo=FALSE, include=FALSE}
 
               try(system("phenoparser  panel  --id VARPATIENT_ID --db VAROMIM_DATABASEPATH --out VARPATIENT_ID"))
-
 
 ```
 
 ## HPO terms and/or suspected diseases 
 
 The table contains all HPO and/or suspected diseases considered when ranking the variants. 
-
-
 
 ```{r make term table, echo=FALSE,include=TRUE}
 
@@ -105,7 +99,7 @@ The table contains all HPO and/or suspected diseases considered when ranking the
               kable(terms,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
               
               }
-     ```
+```
 
 ```{r Add OMIM Phenotype information to df , include=FALSE}
 
@@ -121,7 +115,7 @@ The table contains all HPO and/or suspected diseases considered when ranking the
 
               #df = df %>% left_join(omim_genes, by = "gene")
 
-     ```
+```
 
 
 ```{r Add Phenolyzer information to df , include=FALSE}
@@ -140,19 +134,20 @@ The table contains all HPO and/or suspected diseases considered when ranking the
               #df = df %>% left_join(hpo_genes, by = "gene")
 
 
-     ```
+```
 
-```{r joining... , include=FALSE} 
-           pheno <- omim_genes %>% full_join(hpo_genes, by = "gene")
+```{r joining , include=FALSE} 
 
-          pheno <-pheno %>%  group_by(gene) %>% dplyr::summarise(OmimPanel=paste(unique(OmimPanel), collapse="</br>"), PhenotypicSeries=paste(unique(PhenotypicSeries), collapse = "</br>"),Inheritance=paste(unique(Inheritance), collapse = "</br>"),PhenolyzerPanel=max(PhenolyzerPanel),evidence = paste(unique(evidence), collapse = "</br>")) %>% arrange(desc(PhenolyzerPanel))
+pheno <- omim_genes %>% full_join(hpo_genes, by = "gene")
 
+pheno <- pheno %>%  group_by(gene) %>% dplyr::summarise(OmimPanel=paste(unique(OmimPanel), collapse="</br>"), PhenotypicSeries=paste(unique(PhenotypicSeries), collapse = "</br>"),Inheritance=paste(unique(Inheritance), collapse = "</br>"),PhenolyzerPanel=max(PhenolyzerPanel),evidence = paste(unique(evidence), collapse = "</br>")) %>% arrange(desc(PhenolyzerPanel))
 
-           pheno <- pheno %>% replace_na(list(PhenolyzerPanel = 0.0, OmimPanel = "NA"))
+pheno <- pheno %>% replace_na(list(PhenolyzerPanel = 0.0, OmimPanel = "NA"))
 
-           df = df %>% left_join(pheno, by = "gene")
+df = df %>% left_join(pheno, by = "gene")
            
-     ```
+```
+
 ## Ranking of variants
 
 The table is sorted by variants in genes associated with the patients disease
@@ -171,15 +166,14 @@ in more than 5 patients are given a low priority. Variants with a call quality o
               df  <- df  %>% select(exon,codon_change,aa_change,aa_length,evidence,impact,polyphen_score,sift_score, clinvar_sig,max_aaf_all,sub_type,PhenotypicSeries,Rank, pos, GTS, gene, Severity ,cadd_scaled, PhenolyzerPanel,OmimPanel,Inheritance,CallQ, Depth,  RefD,AltD, everything())
 
 
-     ```
-
-
+```
 
 ```{r Write to tsv, include=FALSE}
 
               write.table(df, file = "VARPATIENT_ID_report_V2.tsv", append = FALSE, quote = FALSE, sep = "\t",na = "NA",row.names = FALSE,col.names = TRUE) 
 
 ```
+
 ## List of candidate variants 
 
 Legend: 
@@ -190,7 +184,7 @@ Legend:
        Column = c("Rank", "pos", "GTS", "PhenolyzerPanel","OmimPanel","CallQ","Depth", "RefD","AltD","cadd_scaled"),
        Description = c("rank of variant after sorting the list according to the criteria above",
                          "genomic coordinates",
-                         "genotpye",
+                         "genotype",
                          "contains a score for genes returned by phenolyzer",
                          "contain genes associated with the patients disease phenotype",
                          "Phred scaled call quality", 
@@ -206,10 +200,6 @@ Legend:
 ```{r, echo=FALSE,include=TRUE}
 
      df <- add_column(df , Info = "<font size=\"+2\" color=\"green\">&oplus;</font>",.before = 1)
-
-
-       
-
 
        datatable(df,rownames=FALSE,filter = 'top',escape = FALSE, 
        options = list(
@@ -300,5 +290,5 @@ Legend:
 
 
 
-     ```
+```
 End.

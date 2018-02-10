@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 export PATH=$PATH:~/gemini/anaconda/bin
       export PATH=$PATH:~/bin

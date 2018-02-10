@@ -55,10 +55,6 @@ main(){
       try load_into_gemini  $pwd/tmp combined_$PLATFORM.d.n.vep.vcf.gz
       next 
 
-      step "Extract from gemini";
-      try extract_from_gemini
-      next
- 
       echo "Done!"
   }
 
@@ -88,7 +84,6 @@ OUTNAME=
 index_vcf $WORKINGDIR $INNAME
 
 #bcf combine al vcf ...
-
 step "Docker cleanup"
 try cleanup_docker
 next 
@@ -107,13 +102,7 @@ $GEMINIBIN/gemini load --passonly -v $1/$2 -t VEP --tempdir $GEMINI_TMP --cores 
 return 0;
 }
 
-extract_from_gemini () {
-
-    $GEMINIBIN/gemini query --header --show-samples --sample-delim ";" -q "select variant_id, num_het, num_hom_alt from variants" $GEMINI_DATABASE > sample_variants_$PLATFORM.txt
-    return 0;
-}
-
-function run_vep () {
+run_vep () {
 if ! [ "$2" ]
 then
 echo "run_vep needs a working directory";
@@ -129,7 +118,7 @@ fi
 local  __resultname=$1
 local myresultname=$(basename "$3" | cut -d. -f1).d.n.vep.vcf
 
-$DOCKERCMD/docker run -v $2:/data seqnextgen_vep perl /src/ensembl-tools-release-82/scripts/variant_effect_predictor/variant_effect_predictor.pl -i /data/$3 -o /data/$myresultname --vcf --fork $NUM_THREADS --offline --cache --sift b --polyphen b --symbol --numbers --biotype --total_length --fields Consequence,Codons,Amino_acids,Gene,SYMBOL,Feature,EXON,PolyPhen,SIFT,Protein_position,BIOTYPE --assembly GRCh37 --dir_cache /root/.vep
+$DOCKERCMD run -v $2:/data seqnextgen_vep perl /src/ensembl-tools-release-82/scripts/variant_effect_predictor/variant_effect_predictor.pl -i /data/$3 -o /data/$myresultname --vcf --fork $NUM_THREADS --offline --cache --sift b --polyphen b --symbol --numbers --biotype --total_length --fields Consequence,Codons,Amino_acids,Gene,SYMBOL,Feature,EXON,PolyPhen,SIFT,Protein_position,BIOTYPE --assembly GRCh37 --dir_cache /root/.vep
 
 eval $__resultname="'$myresultname'"
 }

@@ -8,6 +8,7 @@ HTSLIB="/usr/local/src/htslib-1.6/"
 GRABIX="/usr/local/src/grabix/grabix-master/"
 DOCKERCMD="sudo docker"
 GEMINI_TMP="/home/richard/data/patient_analysis/geminitmp"
+PLBIN="/usr/local/src/Phenolyzer/phenolyzer"
 
 # source tbashlib
 . $SCRIPTS/tlbashlib.sh

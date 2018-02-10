@@ -1,4 +1,6 @@
-function cleanup_docker () {
+#!/usr/bin/env bash
+
+cleanup_docker () {
     list=$(docker ps -a -f status=exited | grep seqnextgen | cut -f1 -d' ')
     if [[ ! $list ]]; then
         echo "No docker containers found".
