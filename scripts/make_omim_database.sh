@@ -64,7 +64,7 @@ make_phenotype_tables() {
  if [ -f $BASEDIR/$newname ]; then
      step "Retrieving OMIM info"
      echo " $SAMPLENAME $BASEDIR/$newname $DATABASE";
-     phenoparser insert --id $SAMPLENAME --pheno $BASEDIR/$newname --key $OMIMKEY --db $DATABASE > $LOG_STEPS 2>&1
+     $PPBIN/phenoparser insert --id $SAMPLENAME --pheno $BASEDIR/$newname --key $OMIMKEY --db $DATABASE > $LOG_STEPS 2>&1
      next
  fi
 }

@@ -2,16 +2,17 @@
 
 #export PATH=$PATH:~/bin
 GEMINIBIN="/home/richard/pipeline/gemini/data/anaconda/bin"
-SCRIPTS="/home/richard/pipeline/scripts"
+SCRIPTS="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts"
 BCFTOOLS="/usr/local/src/bcftools-1.6/"
 HTSLIB="/usr/local/src/htslib-1.6/"
 GRABIX="/usr/local/src/grabix/grabix-master/"
 DOCKERCMD="sudo docker"
 GEMINI_TMP="geminitmp"
 PLBIN="/usr/local/src/Phenolyzer/phenolyzer"
+PPBIN="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser"
 
 # source tbashlib
 . $SCRIPTS/tlbashlib.sh
 . $SCRIPTS/common.sh
 
-export PATH=$PATH:$GEMINIBIN:$SCRIPTS:$BCFTOOLS:$HTSLIB:$GRABIX
+export PATH=$PATH:$GEMINIBIN:$SCRIPTS:$BCFTOOLS:$HTSLIB:$GRABIX:$PLBIN:$PPBIN
