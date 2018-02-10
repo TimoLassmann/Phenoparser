@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 #export PATH=$PATH:~/bin
-GEMINIBIN="~/pipeline/gemini/data/anaconda/bin"
-SCRIPTS=~"/pipeline/scripts"
+GEMINIBIN="/home/richard/pipeline/gemini/data/anaconda/bin"
+SCRIPTS="/home/richard/pipeline/scripts"
 BCFTOOLS="/usr/local/src/bcftools-1.6/"
 HTSLIB="/usr/local/src/htslib-1.6/"
 GRABIX="/usr/local/src/grabix/grabix-master/"
 DOCKERCMD="sudo docker"
-GEMINI_TMP="/home/richard/data/patient_analysis/geminitmp"
+GEMINI_TMP="geminitmp"
 PLBIN="/usr/local/src/Phenolyzer/phenolyzer"
 
 # source tbashlib

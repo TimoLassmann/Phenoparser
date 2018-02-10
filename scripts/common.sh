@@ -1,24 +1,20 @@
-#!/usr/bin/env bash
-
 cleanup_docker () {
-    list=$(docker ps -a -f status=exited | grep seqnextgen | cut -f1 -d' ')
+    list=$( $DOCKERCMD ps -a -f status=exited | grep seqnextgen | cut -f1 -d' ' )
     if [[ ! $list ]]; then
         echo "No docker containers found".
     else
-        docker rm -v $list
+        $DOCKERCMD rm -v $list
     fi
     return 0;
 }
 
-function run_vt_normalize () {
-    #if ! [ "$1" ]
+run_vt_normalize () {
     if ! [ "$2" ]
     then
         echo "run_vt_normalize needs a working directory";
         return 1;
     fi
 
-    #if ! [ "$2" ]
     if ! [ "$3" ]
     then
         echo "run_vt_normalize needs input vcf file";
@@ -33,22 +29,19 @@ function run_vt_normalize () {
         echo "$myresultname exists already.";
     else
         echo "$myresultname does not exists. Running normalise";
-        #sudo docker run -v $2:/data -u `stat -c "%u:%g" $2` seqnextgen_vt vt normalize -r /genome/hg19/hg19.fa.gz -o /data/$myresultname /data/$3
-        sudo docker run -v $2:/data -u `stat -c "%u:%g" $2` seqnextgen_vt vt normalize -r /genome/hg19/hg19.fa.gz -o /data/$myresultname /data/$3
+        $DOCKERCMD run -v $2:/data -u `stat -c "%u:%g" $2` seqnextgen_vt vt normalize -r /genome/hg19/hg19.fa.gz -o /data/$myresultname /data/$3
     fi
 
     eval $__resultname="'$myresultname'"
 }
 
-function run_vt_decompose () {
-    #if ! [ "$1" ]
+run_vt_decompose () {
     if ! [ "$2" ]
     then
         echo "run_vt_decompose needs a working directory";
         return 1;
     fi
 
-    #if ! [ "$2" ]
     if ! [ "$3" ]
     then
         echo "run_vt_decompose needs input vcf file";
@@ -62,14 +55,13 @@ function run_vt_decompose () {
         echo "$myresultname exists already.";
     else
         echo "$myresultname does not exists. Running decompose";
-        #docker run -v $2:/data -u `stat -c "%u:%g" $2` seqnextgen_vt vt decompose -s /data/$3 -o /data/$myresultname
-        sudo docker run -v $2:/data -u `stat -c "%u:%g" $2` seqnextgen_vt vt decompose -s /data/$3 -o /data/$myresultname
+        $DOCKERCMD run -v $2:/data -u `stat -c "%u:%g" $2` seqnextgen_vt vt decompose -s /data/$3 -o /data/$myresultname
     fi
 
     eval $__resultname="'$myresultname'"
 }
 
-function index_vcf() {
+index_vcf() {
 
     if ! [ "$1" ]
     then
@@ -77,24 +69,22 @@ function index_vcf() {
         return 1;
     fi
     step "Index vcf file"
-    try bgzip -f -c $1/$2 > $1/$2.gz
-    try tabix -p vcf -f $1/$2.gz;
-    try grabix index $1/$2.gz;
+    try $HTSLIB/bgzip -f -c $1/$2 > $1/$2.gz
+    try $HTSLIB/tabix -p vcf -f $1/$2.gz;
+    try $GRABIX/grabix index $1/$2.gz;
     next
     
     return 0;
 }
 
-function get_sampleID_from_vcf_file()
-{
+get_sampleID_from_vcf_file(){
     local  __resultvar=$1
-    local  myresult=$( bcftools query -l $2)
+    local  myresult=$( $BCFTOOLS/bcftools query -l $2)
     eval $__resultvar="'$myresult'"
 }
 
 
-function vt_pipeline ()
-{
+vt_pipeline (){
     if ! [ "$1" ]
     then
         echo "Pipeline function needs an input vcf file";

@@ -1,5 +1,5 @@
-
 #!/usr/bin/env bash
+
 echo Loading seqnextgen_vt
 docker load -i seqnextgen_vt.tar
 
