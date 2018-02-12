@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# source common
+. $SNGSCRIPTS/common.sh
+
 pwd=$(pwd)
 
 usage() {
@@ -89,7 +92,7 @@ make_clean_copy_of_input() {
                 echo "WARNING: Unknown sample! Will rename to: $SAMPLENAME ! ";
 
                 echo "$SAMPLENAME" > $WORKINGDIR/samplenames.tmp;
-                try $BCFTOOLS/bcftools reheader  -s $WORKINGDIR/samplenames.tmp $WORKINGDIR/$basefilename  > $WORKINGDIR/tmp.vcf
+                try $SNGBCFTOOLS/bcftools reheader  -s $WORKINGDIR/samplenames.tmp $WORKINGDIR/$basefilename  > $WORKINGDIR/tmp.vcf
                 try cp $WORKINGDIR/tmp.vcf $WORKINGDIR/$basefilename
                 try rm $WORKINGDIR/samplenames.tmp
                 try rm $WORKINGDIR/tmp.vcf
@@ -145,9 +148,9 @@ sanity_check_vcf_files() {
     
     DIRNAME=$(basename $BASEDIR)
 
-    SOURCE=$( $BCFTOOLS/bcftools view -h $1 |  grep "^##source=" | sed 's/^##source=//' | perl -pe 's/[\n,\t, ]+/_/g' );
+    SOURCE=$( $SNGBCFTOOLS/bcftools view -h $1 |  grep "^##source=" | sed 's/^##source=//' | perl -pe 's/[\n,\t, ]+/_/g' );
 
-    REF=$( $BCFTOOLS/bcftools view -h $1 | grep "^##reference=" | sed 's/^##reference=//' | perl -pe 's/[\n,\t, ]+/_/g' );
+    REF=$( $SNGBCFTOOLS/bcftools view -h $1 | grep "^##reference=" | sed 's/^##reference=//' | perl -pe 's/[\n,\t, ]+/_/g' );
 
     printf "%s\t%s\t%s\t%s\n"  "$1" "$SAMPLENAME" "$SOURCE" "$REF" >> sample_info.txt;
 }
@@ -170,9 +173,9 @@ pipeline() {
 
     step "Indexing..."
     if file_exists $WORKINGDIR/$INNAME; then
-        try $HTSLIB/bgzip $WORKINGDIR/$INNAME
-        try $HTSLIB/tabix -p vcf -f $WORKINGDIR/$INNAME.gz;
-        try $GRABIX/grabix index $WORKINGDIR/$INNAME.gz;
+        try $SNGHTSLIB/bgzip $WORKINGDIR/$INNAME
+        try $SNGHTSLIB/tabix -p vcf -f $WORKINGDIR/$INNAME.gz;
+        try $SNGGRABIX/grabix index $WORKINGDIR/$INNAME.gz;
     else
         echo "$WORKINGDIR/$INNAME.gz exists".
     fi

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# source common
+. $SNGSCRIPTS/common.sh
+
 pwd=$(pwd)
 
 usage() {
@@ -68,11 +71,11 @@ outname+="_term_list.txt"
 phenolyzeroutput="phenolyzer_"
 phenolyzeroutput+="$SAMPLENAME"
 
-phenoparser termlist --id $SAMPLENAME --db $OUT_DATABASE $WORKINGDIR/$HPOname  $WORKINGDIR/$OMIMname -o $WORKINGDIR/$outname
+$SNGPPBIN/phenoparser termlist --id $SAMPLENAME --db $OUT_DATABASE $WORKINGDIR/$HPOname  $WORKINGDIR/$OMIMname -o $WORKINGDIR/$outname
 
 step "Retrieve HPO info"
-try perl $PLBIN/disease_annotation.pl ./$INDIR/$outname -f -p -ph -logistic -out ./$INDIR/$phenolyzeroutput/$SAMPLENAME -addon DB_DISGENET_GENE_DISEASE_SCORE,DB_GAD_GENE_DISEASE_SCORE -addon_weight 0.25
-try $PPBIN/phenoparser readphe --id $SAMPLENAME --pheno ./$INDIR/$phenolyzeroutput/$SAMPLENAME --db $OUT_DATABASE
+try perl $SNGPLBIN/disease_annotation.pl ./$INDIR/$outname -f -p -ph -logistic -out ./$INDIR/$phenolyzeroutput/$SAMPLENAME -addon DB_DISGENET_GENE_DISEASE_SCORE,DB_GAD_GENE_DISEASE_SCORE -addon_weight 0.25
+try $SNGPPBIN/phenoparser readphe --id $SAMPLENAME --pheno ./$INDIR/$phenolyzeroutput/$SAMPLENAME --db $OUT_DATABASE
 
 #try docker run -v $WORKINGDIR:/data -u `stat -c "%u:%g" $WORKINGDIR` seqnextgen_phenolyzer perl /src/phenolyzer/disease_annotation.pl /data/$outname -f -p -ph -logistic -out /data/$phenolyzeroutput/$SAMPLENAME  -addon DB_DISGENET_GENE_DISEASE_SCORE,DB_GAD_GENE_DISEASE_SCORE -addon_weight 0.25
 #try phenoparser readphe  --id $SAMPLENAME --pheno $WORKINGDIR/$SAMPLENAME_phenolyzer/hpo.seed_gene_list  --db $OUT_DATABASE

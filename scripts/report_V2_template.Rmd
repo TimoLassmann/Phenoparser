@@ -38,9 +38,11 @@ In this step the following thresholds are used:
 
 ```{r Gemini, include=FALSE}
 
-GEMINIBIN=c(paste("GEMINIBIN=",Sys.getEnv("GEMINIBIN"),sep=""))
+SNGGEMINIBIN=c(paste("SNGGEMINIBIN=",Sys.getenv("SNGGEMINIBIN"),sep=""))
+#writeLines(SNGGEMINIBIN, "outfile.txt")
+#try(system2('echo',args='$SNGGEMINIBIN',env = SNGGEMINIBIN)
 
-try(system2("gemini",args=" query --header -q 'select chrom, start, end, gene, impact, impact_severity,
+try(system2('gemini',args=" query --header -q 'select chrom, start, end, gene, impact, impact_severity,
                cadd_scaled,polyphen_score,sift_score, clinvar_sig,max_aaf_all,sub_type,num_het, num_hom_alt, exon, codon_change, aa_change,aa_length,
               gts.VARPATIENT_ID, 
               gt_depths.VARPATIENT_ID,
@@ -51,7 +53,7 @@ try(system2("gemini",args=" query --header -q 'select chrom, start, end, gene, i
                where 
               max_aaf_all < 0.01 AND 
               (cadd_scaled >= 15 OR impact_severity == \"HIGH\")
-               ' VARGEMINI_DATABASEPATH --gt-filter \"gt_depths.VARPATIENT_ID > 0\" > raw_var_table_VARPATIENT_ID.tsv", intern = TRUE, ignore.stderr = TRUE), env = GEMINIBIN)
+               ' VARGEMINI_DATABASEPATH --gt-filter \"gt_depths.VARPATIENT_ID > 0\" > raw_var_table_VARPATIENT_ID.tsv", stderr="geministderr.txt", env = SNGGEMINIBIN))
 ```
 
 
@@ -79,8 +81,8 @@ try(system2("gemini",args=" query --header -q 'select chrom, start, end, gene, i
 
 ```{r Export Phenotype information,echo=FALSE, include=FALSE}
 
-PPBIN=c(paste("PPBIN=",Sys.getEnv("PPBIN"),sep=""))
-try(system2("phenoparser",args=" panel  --id VARPATIENT_ID --db VAROMIM_DATABASEPATH --out VARPATIENT_ID", env=PPBIN))
+SNGPPBIN=c(paste("SNGPPBIN=",Sys.getenv("SNGPPBIN"),sep=""))
+try(system2("phenoparser",args=" panel  --id VARPATIENT_ID --db VAROMIM_DATABASEPATH --out VARPATIENT_ID", stderr="phenoparsererr.txt", env=SNGPPBIN))
 
 ```
 
@@ -92,15 +94,15 @@ The table contains all HPO and/or suspected diseases considered when ranking the
 
               info = file.info("VARPATIENT_ID_terms.csv")
               if(info[1,1] != 0){
-              terms = suppressMessages(read_csv("VARPATIENT_ID_terms.csv",col_names = FALSE))
-              colnames(terms) = c("Patient ID","Term")
-              terms$Description = ontology$name[terms$Term];
-              terms <- terms %>% filter(!str_detect(Term, "PS"))  
+               terms = suppressMessages(read_csv("VARPATIENT_ID_terms.csv",col_names = FALSE))
+               colnames(terms) = c("Patient ID","Term")
+               terms$Description = ontology$name[terms$Term];
+               terms <- terms %>% filter(!str_detect(Term, "PS"))  
 
-              #datatable(terms,rownames=TRUE,filter = 'top',options = list(pageLength=50,autoWidth = TRUE,columnDefs = list(list(width = '5px', targets = "_all"))))
-              kable(terms,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
+               #datatable(terms,rownames=TRUE,filter = 'top',options = list(pageLength=50,autoWidth = TRUE,columnDefs = list(list(width = '5px', targets = "_all"))))
+               kable(terms,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
               
-              }
+               }
 ```
 
 ```{r Add OMIM Phenotype information to df , include=FALSE}

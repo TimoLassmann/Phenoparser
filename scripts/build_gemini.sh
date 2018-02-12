@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# source common
+. $SNGSCRIPTS/common.sh
+
   pwd=$(pwd)
 
   usage(){
@@ -38,12 +41,15 @@ main(){
  
       step "Merge all vcf files"
       # RF checking to see if there's only one vcf file for this technology
-      if [ ${#samplelist[@]} == 1 ]; then
+      if [ ${#samplelist[@]} == 0 ]; then
+          echo " - No samples detected for this platform ($PLATFORM). Exiting!";
+          try exit 1;
+      elif [ ${#samplelist[@]} == 1 ]; then
           echo " - Only one sample";
-          cat "${samplelist[@]}" > $pwd/tmp/combined_$PLATFORM.vcf;
+          try cat "${samplelist[@]}" > $pwd/tmp/combined_$PLATFORM.vcf;
       else
           echo " - Merging samples";
-          try bcftools merge "${samplelist[@]}" > $pwd/tmp/combined_$PLATFORM.vcf
+          try $SNGBCFTOOLS/bcftools merge "${samplelist[@]}" > $pwd/tmp/combined_$PLATFORM.vcf
       fi
       next
  
@@ -98,7 +104,7 @@ echo "index needs and input file";
 return 1;
 fi
 
-$GEMINIBIN/gemini load --passonly -v $1/$2 -t VEP --tempdir $GEMINI_TMP --cores $NUM_THREADS $GEMINI_DATABASE
+$SNGGEMINIBIN/gemini load --passonly -v $1/$2 -t VEP --tempdir ./$SNGGEMINI_TMP --cores $NUM_THREADS $GEMINI_DATABASE
 return 0;
 }
 
@@ -118,7 +124,7 @@ fi
 local  __resultname=$1
 local myresultname=$(basename "$3" | cut -d. -f1).d.n.vep.vcf
 
-$DOCKERCMD run -v $2:/data seqnextgen_vep perl /src/ensembl-tools-release-82/scripts/variant_effect_predictor/variant_effect_predictor.pl -i /data/$3 -o /data/$myresultname --vcf --fork $NUM_THREADS --offline --cache --sift b --polyphen b --symbol --numbers --biotype --total_length --fields Consequence,Codons,Amino_acids,Gene,SYMBOL,Feature,EXON,PolyPhen,SIFT,Protein_position,BIOTYPE --assembly GRCh37 --dir_cache /root/.vep
+$SNGDOCKERCMD run -v $2:/data seqnextgen_vep perl /src/ensembl-tools-release-82/scripts/variant_effect_predictor/variant_effect_predictor.pl -i /data/$3 -o /data/$myresultname --vcf --fork $NUM_THREADS --offline --cache --sift b --polyphen b --symbol --numbers --biotype --total_length --fields Consequence,Codons,Amino_acids,Gene,SYMBOL,Feature,EXON,PolyPhen,SIFT,Protein_position,BIOTYPE --assembly GRCh37 --dir_cache /root/.vep
 
 eval $__resultname="'$myresultname'"
 }

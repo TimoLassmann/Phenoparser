@@ -1,18 +1,14 @@
 #!/usr/bin/env bash
 
-#export PATH=$PATH:~/bin
-GEMINIBIN="/home/richard/pipeline/gemini/data/anaconda/bin"
-SCRIPTS="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts"
-BCFTOOLS="/usr/local/src/bcftools-1.6/"
-HTSLIB="/usr/local/src/htslib-1.6/"
-GRABIX="/usr/local/src/grabix/grabix-master/"
-DOCKERCMD="sudo docker"
-GEMINI_TMP="geminitmp"
-PLBIN="/usr/local/src/Phenolyzer/phenolyzer"
-PPBIN="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser"
+export SNGGEMINIBIN="/home/richard/pipeline/gemini/tools/bin"
+#GEMINIBIN="/home/richard/pipeline/gemini/data/anaconda/bin"
+export SNGSCRIPTS="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts"
+export SNGBCFTOOLS="/usr/local/src/bcftools-1.6/"
+export SNGHTSLIB="/usr/local/src/htslib-1.6/"
+export SNGGRABIX="/usr/local/src/grabix/grabix-master/"
+export SNGDOCKERCMD="sudo docker"
+export SNGGEMINI_TMP="geminitmp"
+export SNGPLBIN="/usr/local/src/Phenolyzer/phenolyzer"
+export SNGPPBIN="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/src"
 
-# source tbashlib
-. $SCRIPTS/tlbashlib.sh
-. $SCRIPTS/common.sh
-
-export PATH=$PATH:$GEMINIBIN:$SCRIPTS:$BCFTOOLS:$HTSLIB:$GRABIX:$PLBIN:$PPBIN
+export PATH=$PATH:$SNGGEMINIBIN:$SNGSCRIPTS:$SNGBCFTOOLS:$SNGHTSLIB:$SNGGRABIX:$SNGPLBIN:$SNGPPBIN

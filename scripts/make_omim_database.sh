@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# source common
+. $SNGSCRIPTS/common.sh
+
 pwd=$(pwd)
 
 usage() {
@@ -64,7 +67,7 @@ make_phenotype_tables() {
  if [ -f $BASEDIR/$newname ]; then
      step "Retrieving OMIM info"
      echo " $SAMPLENAME $BASEDIR/$newname $DATABASE";
-     $PPBIN/phenoparser insert --id $SAMPLENAME --pheno $BASEDIR/$newname --key $OMIMKEY --db $DATABASE > $LOG_STEPS 2>&1
+     $SNGPPBIN/phenoparser insert --id $SAMPLENAME --pheno $BASEDIR/$newname --key $OMIMKEY --db $DATABASE > $LOG_STEPS 2>&1
      next
  fi
 }
