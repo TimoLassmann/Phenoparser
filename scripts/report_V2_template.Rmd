@@ -27,7 +27,7 @@ Sequencing platform: VARGEMINI_DATABASEPATH
 ```
 
 ```{r loadOBO, warning = FALSE, message = FALSE, include=FALSE}
-          ontology <- get_ontology("VARPATHTOHPOOBO/hp.obo")
+          ontology <- get_ontology("VARPATHTOHPOOBO")
 ```
 ## Extract variants and annotation from gemini
 
@@ -53,7 +53,7 @@ try(system2('gemini',args=" query --header -q 'select chrom, start, end, gene, i
                where 
               max_aaf_all < 0.01 AND 
               (cadd_scaled >= 15 OR impact_severity == \"HIGH\")
-               ' VARGEMINI_DATABASEPATH --gt-filter \"gt_depths.VARPATIENT_ID > 0\" > raw_var_table_VARPATIENT_ID.tsv", stderr="geministderr.txt", env = SNGGEMINIBIN))
+               ' VARGEMINI_DATABASEPATH --gt-filter \"gt_depths.VARPATIENT_ID > 0\" > raw_var_table_VARPATIENT_ID.tsv", stderr="R_geministderr.txt", env = SNGGEMINIBIN))
 ```
 
 
@@ -82,7 +82,7 @@ try(system2('gemini',args=" query --header -q 'select chrom, start, end, gene, i
 ```{r Export Phenotype information,echo=FALSE, include=FALSE}
 
 SNGPPBIN=c(paste("SNGPPBIN=",Sys.getenv("SNGPPBIN"),sep=""))
-try(system2("phenoparser",args=" panel  --id VARPATIENT_ID --db VAROMIM_DATABASEPATH --out VARPATIENT_ID", stderr="phenoparsererr.txt", env=SNGPPBIN))
+try(system2("phenoparser",args=" panel  --id VARPATIENT_ID --db VAROMIM_DATABASEPATH --out VARPATIENT_ID", stderr="R_phenoparsererr.txt", env=SNGPPBIN))
 
 ```
 

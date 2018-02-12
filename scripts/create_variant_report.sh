@@ -7,7 +7,7 @@ pwd=$(pwd)
 
 usage() {
 cat <<EOF
-usage: $0  -i <patient> -g <gemini_database> -d <phenoparser database> -t <template> -o <path to hpo.obo>
+usage: $0  -i <patient> -g <gemini_database> -d <phenoparser database> -t <template> -o <path to hp.obo>
 EOF
   exit 1;
 }

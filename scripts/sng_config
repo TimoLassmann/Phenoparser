@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
 
-export SNGGEMINIBIN="/home/richard/pipeline/gemini/tools/bin"
-#GEMINIBIN="/home/richard/pipeline/gemini/data/anaconda/bin"
-export SNGSCRIPTS="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts"
-export SNGBCFTOOLS="/usr/local/src/bcftools-1.6/"
-export SNGHTSLIB="/usr/local/src/htslib-1.6/"
-export SNGGRABIX="/usr/local/src/grabix/grabix-master/"
-export SNGDOCKERCMD="sudo docker"
+# this is the directory where the gemini binary lives
+export SNGGEMINIBIN="/home/richard/pipeline/gemini/tools/bin/"
+# a temp directory that is made in your patient_analysis folder to store temporary Gemini files
 export SNGGEMINI_TMP="geminitmp"
-export SNGPLBIN="/usr/local/src/Phenolyzer/phenolyzer"
-export SNGPPBIN="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/src"
+# this is the subdirectory of the phenoparser code that contains the pipeline scripts
+export SNGSCRIPTS="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/"
+# file path to the bcftools root directory where the bcftools binary lives
+export SNGBCFTOOLS="/usr/local/src/bcftools-1.6/"
+# file path to the htslib root directory where bgzip and tabix binaries live
+export SNGHTSLIB="/usr/local/src/htslib-1.6/"
+# file path to the grabix root directory where the grabix binary lives
+export SNGGRABIX="/usr/local/src/grabix/grabix-master/"
+# command to run docker
+export SNGDOCKERCMD="sudo docker"
+# this is the phenolyzer root directory where the disease_annotation.pl perl script lives 
+export SNGPLBIN="/usr/local/src/Phenolyzer/phenolyzer/"
+# this is the phenoparser root directory where the phenoparser binary lives
+export SNGPPBIN="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/src/"
 
+# export these locations to the PATH
 export PATH=$PATH:$SNGGEMINIBIN:$SNGSCRIPTS:$SNGBCFTOOLS:$SNGHTSLIB:$SNGGRABIX:$SNGPLBIN:$SNGPPBIN
