@@ -100,7 +100,13 @@ return 0;
 load_into_gemini () {
 if ! [ "$1" ]
 then
-echo "index needs and input file";
+echo "gemini needs a working directory";
+return 1;
+fi
+
+if ! [ "$2" ]
+then
+echo "gemini needs and input file";
 return 1;
 fi
 

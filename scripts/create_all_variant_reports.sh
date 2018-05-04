@@ -20,7 +20,7 @@ main() {
   TEMPLATE=
   HPO_OBO=
 
-  while getopts g:d:t:  opt
+  while getopts g:d:t:o:  opt
   do
       case ${opt} in
 	  g) GEMINI_DATABASEPATH=${OPTARG};;
