@@ -34,13 +34,10 @@ main() {
     
     make_clean_copy_of_input;
 
-    # run vt on input files... 
-    for file in $(find tmp -name *.vcf -type f); do
-        if ! [[ $file =~ ".d.vcf" ]]; then
-            echo "$file running";            
-            pipeline $file;
-        fi;
-    done   
+    # run vt on input files...
+    export -f pipeline
+    list=( $(find tmp -name *.vcf -type f) );
+    parallel --no-notice -j $NUM_THREADS pipeline ::: "${list[@]}"
 
     #
     #    Extract phenotype information - store in flatfiles... 
@@ -48,10 +45,13 @@ main() {
     if file_exists sample_info.txt; then 
         rm sample_info.txt
     fi
-    
-    for file in $(find tmp -name *.d.n.vcf.gz -type f); do
-        sanity_check_vcf_files $file;
-    done
+
+    export -f sanity_check_vcf_files
+    list=( $(find tmp -name *.d.n.vcf.gz -type f) );
+    parallel --no-notice -j $NUM_THREADS sanity_check_vcf_files ::: "${list[@]}"
+#    for file in $(find tmp -name *.d.n.vcf.gz -type f); do
+#        sanity_check_vcf_files $file;
+#    done
     exit;    
     echo "DONE!!! Hurrah ";
 
@@ -99,6 +99,7 @@ make_clean_copy_of_input() {
            
             else
                 echo "$SAMPLENAME";
+                echo "";
             fi
        
             BASEDIR=$(dirname "$file") 
@@ -160,6 +161,13 @@ pipeline() {
     if ! [ "$1" ]
     then
         echo "Pipeline function needs an input vcf file";
+        return 1;
+    fi
+
+    if ! [[ $file =~ ".d.vcf" ]]; then
+        echo "$file running";
+    else
+        echo "Not running $file as could be decomposed already";
         return 1;
     fi
 
