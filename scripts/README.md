@@ -8,19 +8,19 @@ data from various platforms.
 The pipeline applies the following steps to (described in more detail
 further below) to vcf files:
 
-  Step                        Software                                                                               Purpose
-  --------------------------- -------------------------------------------------------------------------------------- -------------------------------------------------------------------------------------------------------------------------------------
-  Data cleaning                                                                                                      Get all vcf files into a comparable state
-  Decompose                   vt (<https://genome.sph.umich.edu/wiki/Vt>)                                            Decompose multiallelic variants
-  Normalize                   vt                                                                                     Standardize vcf format (see [Tan paper](https://academic.oup.com/bioinformatics/article/31/13/2202/196142) )
-  Phenotype data                                                                                                     parse phenotype data
-  query OMIM                  phenoparser                                                                            a simple c program to query omim and store results in a database (see: [phenoparser](https://github.com/TimoLassmann/Phenoparser) )
-  query phenolyzer            phenolyzer ( <http://phenolyzer.wglab.org/>)                                           creates gene lists (panels) from input HPO terms
-  Variant Annotation          Variant Effect Predictor ( <https://www.ensembl.org/info/docs/tools/vep/index.html>)   Add annotation prior to import into Gemini
-  Gemini                                                                                                             Database holding variants and annotation; can be queried using sql statements
-  Load into gemini            gemini ( <https://gemini.readthedocs.io/en/latest/> )                                  We generate a separate database for each sequencing technology (IonTorrent, Illumina and Solid)
-  Reporting                                                                                                          
-  make reports for patients   shell script                                                                           takes gemini database and phenotype data and combines it into one report
+|  Step                      |  Software                                                                             |  Purpose                                                                                                                             | 
+| ---------------------------| --------------------------------------------------------------------------------------| -------------------------------------------------------------------------------------------------------------------------------------|
+|  Data cleaning             |                                                                                       |  Get all vcf files into a comparable state
+|  Decompose                 |  vt (<https://genome.sph.umich.edu/wiki/Vt>)                                          |  Decompose multiallelic variants
+|  Normalize                 |  vt                                                                                   |  Standardize vcf format (see [Tan paper](https://academic.oup.com/bioinformatics/article/31/13/2202/196142) )
+|  Phenotype data            |                                                                                       |  parse phenotype data
+|  query OMIM                |  phenoparser                                                                          |  a simple c program to query omim and store results in a database (see: [phenoparser](https://github.com/TimoLassmann/Phenoparser) )
+|  query phenolyzer          |  phenolyzer ( <http://phenolyzer.wglab.org/>)                                         |  creates gene lists (panels) from input HPO terms
+|  Variant Annotation        |  Variant Effect Predictor ( <https://www.ensembl.org/info/docs/tools/vep/index.html>) |  Add annotation prior to import into Gemini
+|  Gemini                    |                                                                                       |  Database holding variants and annotation; can be queried using sql statements
+|  Load into gemini          |  gemini ( <https://gemini.readthedocs.io/en/latest/> )                                |  We generate a separate database for each sequencing technology (IonTorrent, Illumina and Solid)
+|  Reporting                 |                                                                                       |  
+|  make reports for patients |  shell script and R                                                                   |    takes gemini database and phenotype data and combines it into one report
                                                                                                                      
 
 Data {#sec-2}
