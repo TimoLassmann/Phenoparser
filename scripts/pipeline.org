@@ -22,6 +22,8 @@
   | query OMIM                | phenoparser                                          | a simple c program to query omim and store results in a database (see: [[https://github.com/TimoLassmann/Phenoparser][phenoparser]] )            |
   | query phenolyzer          | phenolyzer ( http://phenolyzer.wglab.org/)           | creates gene lists (panels) from input HPO terms                                                |
   |---------------------------+------------------------------------------------------+-------------------------------------------------------------------------------------------------|
+  | Variant Annotation        | Variant Effect Predictor ( https://www.ensembl.org/info/docs/tools/vep/index.html)                            | Add annotation prior to import into Gemini                                                      |
+  |---------------------------+------------------------------------------------------+-------------------------------------------------------------------------------------------------|
   | Gemini                    |                                                      | Database holding variants and annotation; can be queried using sql statements                   |
   |---------------------------+------------------------------------------------------+-------------------------------------------------------------------------------------------------|
   | Load into gemini          | gemini (  https://gemini.readthedocs.io/en/latest/ ) | We generate a separate database for each sequencing technology (IonTorrent, Illumina and Solid) |
@@ -46,7 +48,7 @@
     │   ├── hpo.txt
     │   └── omim.txt
     └── vcf
-    └── D13-1074.vcf
+        └── D13-1074.vcf
 
     2 directories, 3 files
   #+END_SRC
