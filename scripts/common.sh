@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+
 cleanup_docker () {
     list=$( $SNGDOCKERCMD ps -a -f status=exited | grep seqnextgen | cut -f1 -d' ' )
     if [[ ! $list ]]; then
@@ -84,7 +85,6 @@ get_sampleID_from_vcf_file(){
     local  myresult=$( $SNGBCFTOOLS/bcftools query -l $2)
     eval $__resultvar="'$myresult'"
 }
-
 
 vt_pipeline (){
     if ! [ "$1" ]
@@ -223,7 +223,6 @@ next() {
     return $STEP_OK
 }
 
-
 file_exists () {
     if ! [ "$1" ]
     then
@@ -236,3 +235,16 @@ file_exists () {
         return 1;
     fi;
 }
+
+#export -f cleanup_docker
+#export -f run_vt_normalize
+#export -f run_vt_decompose
+#export -f index_vcf
+#export -f get_sampleID_from_vcf_file
+#export -f vt_pipeline
+#export -f echo_success
+#export -f echo_failure
+#export -f step
+#export -f try
+#export -f next
+#export -f file_exists

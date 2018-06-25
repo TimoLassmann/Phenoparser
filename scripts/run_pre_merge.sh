@@ -34,10 +34,23 @@ main() {
     
     make_clean_copy_of_input;
 
+    # run vt on input files... 
+    for file in $(find tmp -name *.vcf -type f); do
+        if ! [[ $file =~ ".d.vcf" ]]; then
+            echo "$file running";
+            pipeline $file;
+        fi;
+    done
+
     # run vt on input files...
-    export -f pipeline
-    list=( $(find tmp -name *.vcf -type f) );
-    parallel --no-notice -j $NUM_THREADS pipeline ::: "${list[@]}"
+#    export -f pipeline
+#    list=( $(find tmp -name *.vcf -type f) );
+    #parallel --no-notice -j $NUM_THREADS pipeline ::: "${list[@]}"
+#    parallel --no-notice -j 1 pipeline ::: "${list[@]}"
+
+    step "Docker cleanup"
+    try cleanup_docker
+    next
 
     #
     #    Extract phenotype information - store in flatfiles... 
@@ -46,12 +59,12 @@ main() {
         rm sample_info.txt
     fi
 
-    export -f sanity_check_vcf_files
-    list=( $(find tmp -name *.d.n.vcf.gz -type f) );
-    parallel --no-notice -j $NUM_THREADS sanity_check_vcf_files ::: "${list[@]}"
-#    for file in $(find tmp -name *.d.n.vcf.gz -type f); do
-#        sanity_check_vcf_files $file;
-#    done
+#    export -f sanity_check_vcf_files
+#    list=( $(find tmp -name *.d.n.vcf.gz -type f) );
+#    parallel --no-notice -j $NUM_THREADS sanity_check_vcf_files ::: "${list[@]}"
+    for file in $(find tmp -name *.d.n.vcf.gz -type f); do
+        sanity_check_vcf_files $file;
+    done
     exit;    
     echo "DONE!!! Hurrah ";
 
@@ -153,7 +166,10 @@ sanity_check_vcf_files() {
 
     REF=$( $SNGBCFTOOLS/bcftools view -h $1 | grep "^##reference=" | sed 's/^##reference=//' | perl -pe 's/[\n,\t, ]+/_/g' );
 
+#exec 200>/var/lock/mylockfile || exit 1
+#flock 200 || exit 1
     printf "%s\t%s\t%s\t%s\n"  "$1" "$SAMPLENAME" "$SOURCE" "$REF" >> sample_info.txt;
+#flock -u 200
 }
 
 pipeline() {
@@ -190,9 +206,6 @@ pipeline() {
 
     next
 
-    step "Docker cleanup"
-    try cleanup_docker
-    next
 }
 
 make_working_directory() {
@@ -207,4 +220,5 @@ make_working_directory() {
     return 0;
 }
 
+#export -f make_working_directory
 main "$@";
