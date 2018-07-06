@@ -1,112 +1,55 @@
-Introduction {#sec-1}
+Introduction
 ============
 
 The purpose of this pipeline is to discover causative variants in
 patients suffering from rare disease. Currently we only focus on exome
 data from various platforms.
 
-The pipeline applies the following steps to (described in more detail
-further below) to vcf files:
+Software installation
+=====================
 
-|  Step                      |  Software                                                                             |  Purpose                                                                                                                             | 
+The pipeline applies the following steps to patient VCF files and accompanying annotation:
+
+|  **Step**                  |  **Software**                                                                         |  **Purpose**                                                                                                                         | 
 | ---------------------------| --------------------------------------------------------------------------------------| -------------------------------------------------------------------------------------------------------------------------------------|
-|  Data cleaning             |                                                                                       |  Get all vcf files into a comparable state
-|  Decompose                 |  vt (<https://genome.sph.umich.edu/wiki/Vt>)                                          |  Decompose multiallelic variants
+|  *Data cleaning*           |                                                                                       |  Get all vcf files into a comparable state
+|  Decompose                 |  vt ( <https://genome.sph.umich.edu/wiki/Vt> )                                        |  Decompose multiallelic variants
 |  Normalize                 |  vt                                                                                   |  Standardize vcf format (see [Tan paper](https://academic.oup.com/bioinformatics/article/31/13/2202/196142) )
-|  Phenotype data            |                                                                                       |  parse phenotype data
-|  query OMIM                |  phenoparser                                                                          |  a simple c program to query omim and store results in a database (see: [phenoparser](https://github.com/TimoLassmann/Phenoparser) )
-|  query phenolyzer          |  phenolyzer ( <http://phenolyzer.wglab.org/>)                                         |  creates gene lists (panels) from input HPO terms
-|  Variant Annotation        |  Variant Effect Predictor ( <https://www.ensembl.org/info/docs/tools/vep/index.html>) |  Add annotation prior to import into Gemini
-|  Gemini                    |                                                                                       |  Database holding variants and annotation; can be queried using sql statements
-|  Load into gemini          |  gemini ( <https://gemini.readthedocs.io/en/latest/> )                                |  We generate a separate database for each sequencing technology (IonTorrent, Illumina and Solid)
-|  Reporting                 |                                                                                       |  
-|  make reports for patients |  shell script and R                                                                   |    takes gemini database and phenotype data and combines it into one report
+|                            |                                                                                       |
+|  *Phenotype data*          |                                                                                       |  Parse phenotype data
+|  Create gene panels        |  phenoparser ( <https://github.com/TimoLassmann/Phenoparser> )                        |  A simple C program to query omim and run phenolyzer, storing all results in a database
+|                            |  requires: phenolyzer ( <http://phenolyzer.wglab.org/> )                              |  Creates gene lists (panels) from input HPO terms
+|                            |                                                                                       |
+|  *Variant data*            |                                                                                       |  Annotate and store/manage variant data
+|  Annotation                |  Variant Effect Predictor ( <https://www.ensembl.org/info/docs/tools/vep/index.html> )|  Add annotation prior to import into Gemini
+|  Storage/management        |  GEMINI ( <https://gemini.readthedocs.io/en/latest/> )                                |  Database holding variants and annotation; can be queried using sql statements
+|                            |  requires: sqlite ( <https://www.sqlite.org/download.html> )                          |  We generate a separate database for each sequencing technology (IonTorrent, Illumina and Solid)
+|                            |                                                                                       |
+|  *Reporting*               |                                                                                       |  
+|  Generate patient reports  |  Shell script and R ( <https://www.r-project.org/> )                                  |  Extracts variant information and combines it with phenotype data into one report of ranked candidate causal variants
                                                                                                                      
 
-Data {#sec-2}
-====
+In addition to the scripts in this distribution (detailed below), the highlighted software components in the table above need to be installed for the pipeline to work.
 
-For each patient I have one directory with two sub-directories: vcf and
-pheno. The latter contains text files with the phenotype / disease
-annotation.
 
-    tree   ~/patient_data/XXX-YYYY/
+Data Organisation
+=================
 
-    /home/user/patient_data/XXX-YYYY/
+Create a directory to store the raw patient data.
+For each patient, create one directory named after the patient ID (preferably the one used in the generation of the VCF file).
+In this directory, create two sub-directories: vcf and pheno. The latter contains text files with the phenotype / disease annotation.
+
+    /home/user/patient_data/D12-3456/
     ├── pheno
     │   ├── hpo.txt
     │   └── omim.txt
     └── vcf
-        └── D13-1074.vcf
+        └── D12-3456.vcf
 
-    2 directories, 3 files
-
-Docker images {#sec-3}
-=============
-
-Historically we used docker images for every step in the pipeline.
-However docker does not seem to be the right option when large amounts
-of data are involved. In future, I want to move the pipeline away from
-docker and simply work with VM images.
-
-The current version still uses two docker images for the vt and vep
-step. To load these images:
-
-    #!/usr/bin/env bash
-    echo Loading seqnextgen_vt
-    docker load -i seqnextgen_vt.tar
-
-    echo Loading seqnextgen_vep
-    docker load -i seqnextgen_vep.tar
-
-Docker files {#sec-3-1}
-------------
-
-### VT {#sec-3-1-1}
-
-    From ubuntu:14.04
-    RUN apt-get update
-    RUN apt-get install -y git build-essential zlib1g-dev
-
-    RUN mkdir /src
-    RUN cd /src && git clone https://github.com/atks/vt.git && cd vt && make && ln -s /src/vt/vt /usr/local/bin
-
-    ADD hg19* /genome/hg19/
-
-    CMD vt
-
-### VEP {#sec-3-1-2}
-
-    From ubuntu:14.04
-    RUN apt-get update
-
-    RUN apt-get install -y wget unzip cpanminus libmysqlclient-dev build-essential curl git zlib1g-dev
-    RUN cpanm Archive::Extract Archive::Zip DBD::mysql
-
-    RUN mkdir /src && cd /src && wget https://github.com/Ensembl/ensembl-tools/archive/release/82.zip && unzip 82.zip && cd ensembl-tools-release-82/scripts/variant_effect_predictor/ && perl ./INSTALL.pl -a alc -y GRCh37 -s homo_sapien
-    s
-
-    # perl /src/ensembl-tools-release-82/scripts/variant_effect_predictor/variant_effect_predictor.pl -i example_GRCh37.vcf --cache --assembly GRCh37 --offline --force_overwrite
-
-    # shell form of CMD
-    CMD echo Image for the Variant Effector Predictor tool
-    #+END_SRC
-
-### phenolyzer {#sec-3-1-3}
-
-    From ubuntu:14.04
-    RUN apt-get update
-    RUN apt-get install -y git build-essential cpanminus
-    RUN cpanm Bio::Perl Bio::OntologyIO Graph::Directed
-
-    RUN mkdir /src && cd /src && git clone https://github.com/WangGenomicsLab/phenolyzer
-
-    CMD echo Phenolyzer
-
-Code {#sec-4}
+Code
 ====
 
-Here are the various scripts I use for the pipeline…
+The pipeline consists of various scripts that run number od Here are the various scripts I use for the pipeline…
 
 Setting paths {#sec-4-1}
 -------------
