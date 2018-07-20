@@ -19,6 +19,7 @@ The pipeline applies the following steps to patient VCF files and accompanying a
 |  **Phenotype data**        |                                                                                       |  Parse phenotype data
 |  Create gene panels        |  phenoparser ( <https://github.com/TimoLassmann/Phenoparser> )                        |  A simple C program to query omim and run phenolyzer, storing all results in a database
 |                            |  requires: phenolyzer ( <http://phenolyzer.wglab.org/> )                              |  Creates gene lists (panels) from input HPO terms
+                               requires: sqlite ( <https://www.sqlite.org/download.html> )                          
 |  =====                     |                                                                                       |
 |  **Variant data**          |                                                                                       |  Annotate and store/manage variant data
 |  Annotation                |  Variant Effect Predictor ( <https://www.ensembl.org/info/docs/tools/vep/index.html> )|  Add annotation prior to import into Gemini
