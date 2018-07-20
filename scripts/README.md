@@ -15,7 +15,7 @@ The pipeline applies the following steps to patient VCF files and accompanying a
 |  *Data cleaning*           |                                                                                       |  Get all vcf files into a comparable state
 |  Decompose                 |  vt ( <https://genome.sph.umich.edu/wiki/Vt> )                                        |  Decompose multiallelic variants
 |  Normalize                 |  vt                                                                                   |  Standardize vcf format (see [Tan paper](https://academic.oup.com/bioinformatics/article/31/13/2202/196142) )
-|                            |                        =================================                              |
+|  =====                     |                                                                                       |
 |  *Phenotype data*          |                                                                                       |  Parse phenotype data
 |  Create gene panels        |  phenoparser ( <https://github.com/TimoLassmann/Phenoparser> )                        |  A simple C program to query omim and run phenolyzer, storing all results in a database
 |                            |  requires: phenolyzer ( <http://phenolyzer.wglab.org/> )                              |  Creates gene lists (panels) from input HPO terms
