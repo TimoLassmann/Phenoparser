@@ -48,9 +48,8 @@ Use Assembly ftp://ftp.ensembl.org/pub/grch37/release-84/fasta/homo_sapiens/dna/
 
 In sng_config
 
-SNGVEPBIN=/path/to/installed/vep
-
-SNGVEPREF=/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa
+`SNGVEPBIN=/path/to/installed/vep`
+`SNGVEPREF=/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa`
 
 GEMINI solely supports human genetic variation mapped to build 37 (aka hg19) of the human genome so be sure to obtain GRCh37 Ensembl data.
 
