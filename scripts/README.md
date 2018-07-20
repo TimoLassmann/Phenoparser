@@ -19,7 +19,7 @@ The pipeline applies the following steps to patient VCF files and accompanying a
 |  **Phenotype data**        |                                                                                       |  Parse phenotype data
 |  Create gene panels        |  phenoparser ( <https://github.com/TimoLassmann/Phenoparser> )                        |  A simple C program to query omim and run phenolyzer, storing all results in a database
 |                            |  requires: phenolyzer ( <http://phenolyzer.wglab.org/> )                              |  Creates gene lists (panels) from input HPO terms
-                               requires: sqlite ( <https://www.sqlite.org/download.html> )                          
+|                            |  requires: sqlite ( <https://www.sqlite.org/download.html> )                          |  A single database is used to store all data 
 |  =====                     |                                                                                       |
 |  **Variant data**          |                                                                                       |  Annotate and store/manage variant data
 |  Annotation                |  Variant Effect Predictor ( <https://www.ensembl.org/info/docs/tools/vep/index.html> )|  Add annotation prior to import into Gemini
@@ -28,15 +28,10 @@ The pipeline applies the following steps to patient VCF files and accompanying a
 |  =====                     |                                                                                       |
 |  **Reporting**             |                                                                                       |  
 |  Generate patient reports  |  Shell script and R ( <https://www.r-project.org/> )                                  |  Extracts variant information and combines it with phenotype data into one report of ranked candidate causal variants
-|                            |  Requires availability of Human Phenotype Ontology txt file                            |  
-                                                                                                                     
-###
-# change all docker references to local installs
-# remove reference to docker tidy up
-# add HPO obo file location to sng_config and alter create_all_variant_reports.sh to use this environment variable rather that the -o option
-
+|                            |  Requires availability of Human Phenotype Ontology txt file                           |  
 
 In addition to the scripts in this distribution (detailed below), the highlighted software components in the table above need to be installed for the pipeline to work.
+
 
 Notes for particular software
 -----------------------------
@@ -53,6 +48,7 @@ In sng_config
 SNGVEPBIN=/path/to/installed/vep
 SNGVEPREF=/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa
 
+GEMINI solely supports human genetic variation mapped to build 37 (aka hg19) of the human genome so be sure to obtain GRCh37 Ensembl data.
 
 **R**
 
@@ -100,6 +96,10 @@ and all shell script have to he reachable:
 
     PATH=$PATH:~/local_install/scripts
 
+###
+# change all docker references to local installs
+# remove reference to docker tidy up
+# add HPO obo file location to sng_config and alter create_all_variant_reports.sh to use this environment variable rather that the -o option
 Convenience library {#sec-4-2}
 -------------------
 
