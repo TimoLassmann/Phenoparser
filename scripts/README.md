@@ -43,7 +43,7 @@ Include the path to this file in the sng_config file using the SNGVEPREF variabl
 
 For example:<br/>
 Using VEP [version 84](<https://github.com/Ensembl/ensembl-tools/archive/release/84.zip>)<br/>
-Use Assembly [version 84](<ftp://ftp.ensembl.org/pub/grch37/release-84/fasta/homo_sapiens/dna/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz>)<br/>
+Use Assembly [version 84](<https://bit.ly/2uQa9oB>)<br/>
 
 In sng_config:<br/>
     `SNGVEPBIN=/path/to/installed/vep`<br/>
