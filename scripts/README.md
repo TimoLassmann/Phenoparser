@@ -41,13 +41,13 @@ Notes for particular software
 VEP installs are linked to Ensembl release versions. So that HGVS expressions are properly created in the reports, be sure to download a compatible (i.e. same Ensembl release) genomic reference sequence file.
 Include the path to this file in the sng_config file using the SNGVEPREF variable.
 
-For example:\
-Using VEP https://github.com/Ensembl/ensembl-tools/archive/release/84.zip\
-Use Assembly ftp://ftp.ensembl.org/pub/grch37/release-84/fasta/homo_sapiens/dna/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz\
+For example:<br/>
+Using VEP https://github.com/Ensembl/ensembl-tools/archive/release/84.zip<br/>
+Use Assembly ftp://ftp.ensembl.org/pub/grch37/release-84/fasta/homo_sapiens/dna/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz<br/>
 
-In sng_config:\
-`SNGVEPBIN=/path/to/installed/vep`\
-`SNGVEPREF=/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa`\
+In sng_config:<br/>
+`SNGVEPBIN=/path/to/installed/vep`<br/>
+`SNGVEPREF=/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa`<br/>
 
 GEMINI solely supports human genetic variation mapped to build 37 (aka hg19) of the human genome so be sure to obtain GRCh37 Ensembl data.
 
