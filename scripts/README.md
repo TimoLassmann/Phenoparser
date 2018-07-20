@@ -15,7 +15,7 @@ The pipeline applies the following steps to patient VCF files and accompanying a
 |  *Data cleaning*           |                                                                                       |  Get all vcf files into a comparable state
 |  Decompose                 |  vt ( <https://genome.sph.umich.edu/wiki/Vt> )                                        |  Decompose multiallelic variants
 |  Normalize                 |  vt                                                                                   |  Standardize vcf format (see [Tan paper](https://academic.oup.com/bioinformatics/article/31/13/2202/196142) )
-|                            |                                                                                       |
+|                            |                        =================================                              |
 |  *Phenotype data*          |                                                                                       |  Parse phenotype data
 |  Create gene panels        |  phenoparser ( <https://github.com/TimoLassmann/Phenoparser> )                        |  A simple C program to query omim and run phenolyzer, storing all results in a database
 |                            |  requires: phenolyzer ( <http://phenolyzer.wglab.org/> )                              |  Creates gene lists (panels) from input HPO terms
@@ -27,9 +27,44 @@ The pipeline applies the following steps to patient VCF files and accompanying a
 |                            |                                                                                       |
 |  *Reporting*               |                                                                                       |  
 |  Generate patient reports  |  Shell script and R ( <https://www.r-project.org/> )                                  |  Extracts variant information and combines it with phenotype data into one report of ranked candidate causal variants
+|                            |  Requires availability of Human Phenotype Ontology txt file                            |  
                                                                                                                      
+###
+# change all docker references to local installs
+# remove reference to docker tidy up
+# add HPO obo file location to sng_config and alter create_all_variant_reports.sh to use this environment variable rather that the -o option
+
 
 In addition to the scripts in this distribution (detailed below), the highlighted software components in the table above need to be installed for the pipeline to work.
+
+Notes for particular software
+-----------------------------
+
+**Variant Effect Predictor**
+
+VEP installs are linked to Ensembl release versions. So that HGVS expressions are properly created in the reports, be sure to download a compatible (i.e. same Ensembl release) genomic reference sequence file.
+Include the path to this file in the sng_config file using the SNGVEPREF variable.
+For example:
+Using VEP https://github.com/Ensembl/ensembl-tools/archive/release/84.zip
+Use Assembly ftp://ftp.ensembl.org/pub/grch37/release-84/fasta/homo_sapiens/dna/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz
+
+In sng_config
+SNGVEPBIN=/path/to/installed/vep
+SNGVEPREF=/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa
+
+
+**R**
+
+R is used to perform data manipulation and generate the reports. In order for the template to run properly the following R packages need to be installed
+dplyr
+rlang
+stringr
+knitr
+DT
+tidyverse
+knitr
+kableExtra
+ontologyIndex
 
 
 Data Organisation
@@ -49,10 +84,12 @@ In this directory, create two sub-directories: vcf and pheno. The latter contain
 Code
 ====
 
-The pipeline consists of various scripts that run number od Here are the various scripts I use for the pipeline…
+The pipeline consists of various scripts that process the input data and run the software components above.
 
-Setting paths {#sec-4-1}
--------------
+SNG Config File
+---------------
+
+The code ships with a sample config file. This is essentially a list of environment variables denoting the location of the relevant software components
 
 The `$PATH` variable has to contain the gemini path:
 
