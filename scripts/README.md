@@ -94,7 +94,7 @@ SNG Config File
 
 The code ships with a sample config file. This is essentially a list of environment variables denoting the location of the relevant software components
 
-```
+```bash
 # this is the directory where the gemini binary lives
 SNGGEMINIBIN="....gemini/tools/bin/"
 # a temp directory that is made in your patient_analysis folder to store temporary Gemini files
