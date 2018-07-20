@@ -42,27 +42,28 @@ VEP installs are linked to Ensembl release versions. So that HGVS expressions ar
 Include the path to this file in the sng_config file using the SNGVEPREF variable.
 
 For example:<br/>
-Using VEP https://github.com/Ensembl/ensembl-tools/archive/release/84.zip<br/>
-Use Assembly ftp://ftp.ensembl.org/pub/grch37/release-84/fasta/homo_sapiens/dna/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz<br/>
+Using VEP <https://github.com/Ensembl/ensembl-tools/archive/release/84.zip><br/>
+Use Assembly <ftp://ftp.ensembl.org/pub/grch37/release-84/fasta/homo_sapiens/dna/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz><br/>
 
 In sng_config:<br/>
-`SNGVEPBIN=/path/to/installed/vep`<br/>
-`SNGVEPREF=/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa`<br/>
+    `SNGVEPBIN=/path/to/installed/vep`<br/>
+    `SNGVEPREF=/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa`<br/>
 
 GEMINI solely supports human genetic variation mapped to build 37 (aka hg19) of the human genome so be sure to obtain GRCh37 Ensembl data.
 
 **R**
 
-R is used to perform data manipulation and generate the reports. In order for the template to run properly the following R packages need to be installed
-dplyr
-rlang
-stringr
-knitr
-DT
-tidyverse
-knitr
-kableExtra
-ontologyIndex
+R is used to perform data manipulation and generate the reports. In order for the template to run properly the following R packages need to be installed:
+
+    dplyr
+    rlang
+    stringr
+    knitr
+    DT
+    tidyverse
+    knitr
+    kableExtra
+    ontologyIndex
 
 
 Data Organisation
