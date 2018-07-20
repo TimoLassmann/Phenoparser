@@ -80,6 +80,10 @@ In this directory, create two sub-directories: vcf and pheno. The latter contain
     └── vcf
         └── D12-3456.vcf
 
+The analysis of this data should be performed in a separate directory. the first part of the pipeline copies all raw data to this directory to leave the original data untouched.
+
+In this document this analysis directory is referred to as the "patient_analysis" directory.
+
 Code
 ====
 
@@ -90,13 +94,32 @@ SNG Config File
 
 The code ships with a sample config file. This is essentially a list of environment variables denoting the location of the relevant software components
 
-The `$PATH` variable has to contain the gemini path:
+```
+# this is the directory where the gemini binary lives
+SNGGEMINIBIN="....gemini/tools/bin/"
+# a temp directory that is made in your patient_analysis folder to store temporary Gemini files
+SNGGEMINI_TMP="geminitmp"
+# this is the subdirectory of the phenoparser code that contains the pipeline scripts
+SNGSCRIPTS="..../Phenoparser/scripts/"
+# file path to the bcftools root directory where the bcftools binary lives
+SNGBCFTOOLS="/usr/local/src/bcftools-1.6/"
+# file path to the htslib root directory where bgzip and tabix binaries live
+SNGHTSLIB="/usr/local/src/htslib-1.6/"
+# file path to the grabix root directory where the grabix binary lives
+SNGGRABIX="/usr/local/src/grabix/grabix-master/"
+# this is the directory where the vt binary lives
+SNGVTBIN=/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa
+# this is the phenolyzer root directory where the disease_annotation.pl perl script lives 
+SNGPLBIN="/usr/local/src/Phenolyzer/phenolyzer/"
+# this is the directory where the phenoparser binary lives
+SNGPPBIN="..../Phenoparser/src/"
+# this is the directory where the VEP binary lives
+SNGVEPBIN="/path/to/installed/vep"
+# this is the directory where the bgzipped genome assembly file for VEP lives
+SNGVEPREF="/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa"
+```
 
-    PATH=$PATH:~/gemini/anaconda/bin
-
-and all shell script have to he reachable:
-
-    PATH=$PATH:~/local_install/scripts
+The above locations are made available in your `$PATH` by sourcing this file at the start of the pipeline
 
 ###
 # change all docker references to local installs
