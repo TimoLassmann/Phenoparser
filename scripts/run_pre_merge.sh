@@ -48,9 +48,9 @@ main() {
     #parallel --no-notice -j $NUM_THREADS pipeline ::: "${list[@]}"
 #    parallel --no-notice -j 1 pipeline ::: "${list[@]}"
 
-    step "Docker cleanup"
-    try cleanup_docker
-    next
+#    step "Docker cleanup"
+#    try cleanup_docker
+#    next
 
     #
     #    Extract phenotype information - store in flatfiles... 

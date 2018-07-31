@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
 
-cleanup_docker () {
-    list=$( $SNGDOCKERCMD ps -a -f status=exited | grep seqnextgen | cut -f1 -d' ' )
-    if [[ ! $list ]]; then
-        echo "No docker containers found".
-    else
-        $SNGDOCKERCMD rm -v $list
-    fi
-    return 0;
-}
+#cleanup_docker () {
+#    list=$( $SNGDOCKERCMD ps -a -f status=exited | grep seqnextgen | cut -f1 -d' ' )
+#    if [[ ! $list ]]; then
+#        echo "No docker containers found".
+#    else
+#        $SNGDOCKERCMD rm -v $list
+#    fi
+#    return 0;
+#}
 
 run_vt_normalize () {
     if ! [ "$2" ]
@@ -32,7 +32,8 @@ run_vt_normalize () {
         echo "$myresultname exists already.";
     else
         echo "$myresultname does not exists. Running normalise";
-        $SNGDOCKERCMD run -v $2:/data -u `stat -c "%u:%g" $2` seqnextgen_vt vt normalize -r /genome/hg19/hg19.fa.gz -o /data/$myresultname /data/$3
+        #$SNGDOCKERCMD run -v $2:/data -u `stat -c "%u:%g" $2` seqnextgen_vt vt normalize -r /genome/hg19/hg19.fa.gz -o /data/$myresultname /data/$3
+        $SNGVTBIN/vt normalize -r $SNGVTREF -o $2/$myresultname $2/$3
     fi
 
     eval $__resultname="'$myresultname'"
@@ -58,7 +59,8 @@ run_vt_decompose () {
         echo "$myresultname exists already.";
     else
         echo "$myresultname does not exists. Running decompose";
-        $SNGDOCKERCMD run -v $2:/data -u `stat -c "%u:%g" $2` seqnextgen_vt vt decompose -s /data/$3 -o /data/$myresultname
+        #$SNGDOCKERCMD run -v $2:/data -u `stat -c "%u:%g" $2` seqnextgen_vt vt decompose -s /data/$3 -o /data/$myresultname
+        $SNGVTBIN/vt decompose -s $2/$3 -o $2/$myresultname
     fi
 
     eval $__resultname="'$myresultname'"

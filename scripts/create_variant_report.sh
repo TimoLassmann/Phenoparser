@@ -7,7 +7,7 @@ pwd=$(pwd)
 
 usage() {
 cat <<EOF
-usage: $0  -i <patient> -g <gemini_database> -d <phenoparser database> -t <template> -o <path to hp.obo>
+usage: $0  -i <patient> -g <gemini_database> -d <phenoparser database> -t <template>
 EOF
   exit 1;
 }
@@ -17,16 +17,14 @@ main() {
   GEMINI_DATABASEPATH=
   DATABASEPATH=
   TEMPLATE=
-  HPO_OBO=
 
-  while getopts i:g:d:t:o:  opt
+  while getopts i:g:d:t:  opt
   do
   case ${opt} in
 i) PATIENT_ID=${OPTARG};;
 g) GEMINI_DATABASEPATH=${OPTARG};;
 d) DATABASEPATH=${OPTARG};;
 t) TEMPLATE=${OPTARG};;
-o) HPO_OBO=${OPTARG};;
 *) usage;;
 esac
 done
@@ -34,7 +32,6 @@ done
 if [ "${PATIENT_ID}" = "" ]; then usage; fi
 if [ "${GEMINI_DATABASEPATH}" = "" ]; then usage; fi
 if [ "${DATABASEPATH}" = "" ]; then usage; fi
-if [ "${HPO_OBO}" = "" ]; then usage; fi
 
 timestamp=$(date +"%m%d%y")
 
@@ -48,7 +45,7 @@ cat $TEMPLATE \
 | sed -e "s=VARGEMINI_DATABASEPATH=$GEMINI_DATABASEPATH=g" \
 | sed -e "s=VAROMIM_DATABASEPATH=$DATABASEPATH=g" \
 | sed -e "s=VARPHENOLYZER_DATABASEPATH=$PHENOLYZER_DATABASEPATH=g" \
-| sed -e "s=VARPATHTOHPOOBO=$HPO_OBO=g" \
+| sed -e "s=VARPATHTOHPOOBO=$SNGHPOBO=g" \
 > $reportname
 
 R -e "rmarkdown::render('$reportname')"
