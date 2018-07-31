@@ -25,10 +25,11 @@ The pipeline applies the following steps to patient VCF files and accompanying a
 |  Annotation                |  Variant Effect Predictor ( <https://www.ensembl.org/info/docs/tools/vep/index.html> )|  Add annotation prior to import into Gemini
 |  Storage/management        |  GEMINI ( <https://gemini.readthedocs.io/en/latest/> )                                |  Database holding variants and annotation; can be queried using sql statements
 |                            |  requires: sqlite ( <https://www.sqlite.org/download.html> )                          |  We generate a separate database for each sequencing technology (IonTorrent, Illumina and Solid)
+|                            |  requires: perl                                                                       |
 |  =====                     |                                                                                       |
 |  **Reporting**             |                                                                                       |  
 |  Generate patient reports  |  Shell script and R ( <https://www.r-project.org/> )                                  |  Extracts variant information and combines it with phenotype data into one report of ranked candidate causal variants
-|                            |  Requires availability of Human Phenotype Ontology txt file                           |  
+|                            |  requires: [Human Phenotype Ontology](<https://github.com/obophenotype/human-phenotype-ontology>) hp.obo file                           |  
 
 In addition to the scripts in this distribution (detailed below), the highlighted software components in the table above need to be installed for the pipeline to work.
 
@@ -108,15 +109,21 @@ SNGHTSLIB="/usr/local/src/htslib-1.6/"
 # file path to the grabix root directory where the grabix binary lives
 SNGGRABIX="/usr/local/src/grabix/grabix-master/"
 # this is the directory where the vt binary lives
-SNGVTBIN=/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa
+SNGVTBIN="/usr/local/src/vt/"
+# this is the directory where the vt reference sequence lives - should be the reference the variants were aligned to
+SNGVTREF="/usr/local/src/vt/hg19/hg19.fa.gz"
+# this is the directory where the VEP binary lives
+SNGVEPBIN="/usr/local/src/vep/"
+# this is the directory where VEP can store temporary files
+SNGVEPTMP="veptmp"
+# this is the directory where the bgzipped genome assembly file for VEP lives
+SNGVEPREF="/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa"
 # this is the phenolyzer root directory where the disease_annotation.pl perl script lives 
 SNGPLBIN="/usr/local/src/Phenolyzer/phenolyzer/"
 # this is the directory where the phenoparser binary lives
 SNGPPBIN="..../Phenoparser/src/"
-# this is the directory where the VEP binary lives
-SNGVEPBIN="/path/to/installed/vep"
-# this is the directory where the bgzipped genome assembly file for VEP lives
-SNGVEPREF="/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa"
+# this is the location of the human phenotype ontology file
+SNGHPOBO="/path/to/hp.obo"
 ```
 
 The above locations are made available in your `$PATH` by sourcing this file at the start of the pipeline
