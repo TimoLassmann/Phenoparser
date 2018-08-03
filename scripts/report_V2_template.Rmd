@@ -96,7 +96,7 @@ try(system2(geminibin,args=" query --header -q 'select t1.chrom, t1.start, t1.en
 #SNGPPBIN=c(paste("SNGPPBIN=",Sys.getenv("SNGPPBIN"),sep=""))
 #try(system2("phenoparser",args=" panel  --id VARPATIENT_ID --db VAROMIM_DATABASEPATH --out VARPATIENT_ID", stderr="R_phenoparsererr.txt", env=SNGPPBIN))
 phenobin = paste(Sys.getenv("SNGPPBIN"),"phenoparser",sep="/");
-try(system2(phenobin,args=" panel  --id VARPATIENT_ID --db VAROMIM_DATABASEPATH --out VARPATIENT_ID", stderr="R_phenoparsererr.txt"));
+try(system2(phenobin,args=" panel  --id VARPATIENT_ID --db VARPHENO_DATABASEPATH --out VARPATIENT_ID", stderr="R_phenoparsererr.txt"));
 
 ```
 
