@@ -96,6 +96,8 @@ SNG Config File
 The code ships with a sample config file. This is essentially a list of environment variables denoting the location of the relevant software components
 
 ```bash
+# this is the directory to which all patient data is copied and where the pipeline writes temporary files
+export SNGTMP="tmp"
 # this is the directory where the gemini binary lives
 SNGGEMINIBIN="....gemini/tools/bin/"
 # a temp directory that is made in your patient_analysis folder to store temporary Gemini files
@@ -188,43 +190,47 @@ build_gemini_db.sh -p Torrent -d Torrent.db -l gatk.log
 Make Omim database
 ------------------
 
-The script below runs phenoparser written by myself to extract
-information from the OMIM database. All information is stored in a sql
-lite database to make sure the analysis is reproducible even if OMIM
-changes. This also allows us to re-run previously un-diagnosed cases if
-there is a major update.
+The script `make_omim_database.sh` runs [phenoparser]( <https://github.com/TimoLassmann/Phenoparser> ) to extract information from the OMIM database based on any supplied omim phenotypic terms for each patient.
+It also pulls down Phenotypic Series records - collections of entries with overlapping clinical manifestations. In all cases, disease associated genes and annotation are retrieved and stored in an SQLite database
+to make sure the analysis is reproducible even if OMIM changes. This also allows you to re-run previously un-diagnosed cases if there is a major update.
 
-To access OMIM you need an OMIM key which you can request online.
+To access OMIM you need an OMIM key which you can request online at ( <https://www.omim.org/api> ). Applications can take a few days to be approved.
 
-The options are:
+The options to the script are:
 
--i &lt;directory holding data of multiple patients&gt; -d &lt;output
-database&gt; -l &lt;log file&gt; -k &lt;OMIM key&gt;
+```
+-d <output database where all results will be stored>
+-l <log file to keep track of what's happening>
+-k <OMIM key>
+```
 
 Example usage:
 
-    ../scripts/make_omim_database.sh  -i ~/patient_data -d omim.db -l omim.log -k
-    <KEY>
+```
+make_omim_database.sh -d omim.db -l omim.log -k <KEY>
+```
 
-Phenolyzer {#sec-4-6}
+Phenolyzer
 ----------
 
-This script takes HPO terms **and Disease terms** for each patient and
-queries Phenolyzer. For usability I now store the resuls in the same
-database as the OMIM information (simply use -d &lt;same database name
-as above&gt;.
+This script `make_extended_phenolyzer_database.sh` takes HPO terms **and Disease terms** for each patient and
+queries Phenolyzer. All data is stored in an SQLite database and for simplicity you can use the same database as the OMIM information
+by simply using `-d same database name as above`.
 
 The options are:
 
--i &lt;directory holding data of multiple patients&gt; -d &lt;output
-database&gt; -l &lt;log file&gt;
+```
+-d <output database where all data will be stored>
+-l <log file to keep track of what's happening>
+```
 
 Example usage:
 
-    ../scripts/make_phenolyzer_database.sh -i <directory where the copied vcf files
-    are> -d hpo.txt -l phenolyzer.log
+```
+make_extended_phenolyzer_database.sh -d omim.db -l phenolyzer.log
+```
 
-Patient reports {#sec-4-7}
+Patient reports
 ---------------
 
 I use RMarkown and knitr to create per-patient reports. A template
