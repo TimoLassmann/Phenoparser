@@ -213,14 +213,13 @@ make_omim_database.sh -d omim.db -l omim.log -k <KEY>
 Phenolyzer
 ----------
 
-This script `make_extended_phenolyzer_database.sh` takes HPO terms **and Disease terms** for each patient and
-queries Phenolyzer. All data is stored in an SQLite database and for simplicity you can use the same database as the OMIM information
-by simply using `-d same database name as above`.
+The script `make_extended_phenolyzer_database.sh` takes in any available HPO terms **and Disease terms** for each patient and
+queries Phenolyzer. All data is stored in the same SQLite database as the omim data.
 
 The options are:
 
 ```
--d <output database where all data will be stored>
+-d <output database where all data will be stored - needs to be the same database name as above>
 -l <log file to keep track of what's happening>
 ```
 
@@ -233,47 +232,42 @@ make_extended_phenolyzer_database.sh -d omim.db -l phenolyzer.log
 Patient reports
 ---------------
 
-I use RMarkown and knitr to create per-patient reports. A template
-contains special variables that are replaced by patient details. This
-gives us a lot of flexibility for the future: we can have reports for
-research including more variants etc…
+### Script
 
-### Create variant report {#sec-4-7-1}
+The pipeline uses RMarkown and knitr to create per-patient reports. A template contains special variables that are replaced by patient details.
 
-This script brings all the data together into one report. It extracts
-variants together with their annotation from gemini and overlays in
-silico gene panels from OMIM and Phenolyzer.
+Either a single report can be generated for a list of patient IDs or reports for all patients can be create.
 
-Then script works by copying a report template, replacing placeholder
-variables with patient data and then running the template in R. The
-output is a html file containing information about the analysis as well
-as a tab separated file with the variant table.
+The script `create_variant_reports.sh` brings all the data together into one report. It extracts variants together with their annotation from gemini and overlays in
+silico gene panels from OMIM and Phenolyzer.  The script works by copying a report template, replacing placeholder variables with patient data and then running the template in R. The
+output is a html file containing information about the analysis as well as a tab separated file with the variant table.
 
 The options are:
 
--i &lt;patient id&gt; -g &lt;gemini database&gt; -o &lt;omim
-database&gt; -p &lt;phenolyzer database&gt; -t &lt;report template&gt;
+```
+-i <patient id - comma separated list or leave blank to produce reports for all patients>
+-g <gemini database path for a particular platform>
+-p <phenotype database path>
+-t <report template>
+-l <logfile to keep track of what is happening>
+```
 
 Example usage:
 
-    ../scripts/create_variant_report.sh -i <patientID> -g Torrent.db -o omim.db -p
-    hpo.txt -t ../scripts/report_master_template.Rmd
+```
+# specific patients
+create_variant_reports.sh -i patient1,patient2 -g Torrent.db -p omim.db -t report_master_template.Rmd -l reports.log
 
-### Master Template {#sec-4-7-2}
+# all patients
+create_variant_reports.sh -g Torrent.db -p omim.db -t report_master_template.Rmd -l reports.log
+```
 
-### Create all reports {#sec-4-7-3}
+### Template
 
-A simple script to generate reports for all patients found in a
-database.
+The template `report_V2_template.Rmd` combines variants and disease annotation from the various sources generated in the pipeline.
+It then orders the subsequence interactive table so as to place the most likely causative variants at the top of the list.
+Additional annoation is presented such as HGVS expressions, links out to UniProt and ClinVar plus other useful references.
 
-The options are:
-
--g &lt;gemini database&gt; -o &lt;omim database&gt; -p &lt;phenolyzer
-database&gt;
-
-Example usage:
-
-    ../scripts/create_all_variant_reports.sh -g Torrent.db -o omim.db -p hpo.txt
 
 Complete script
 ---------------
