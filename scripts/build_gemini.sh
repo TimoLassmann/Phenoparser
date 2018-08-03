@@ -20,7 +20,6 @@ main(){
  
       NUM_THREADS=6
  
- 
       while getopts p:d:t:l: opt
       do
 	  case ${opt} in
@@ -35,33 +34,34 @@ main(){
  
       if [ "${GEMINI_DATABASE}" = "" ]; then usage; fi
       if [ "${PLATFORM}" = "" ]; then usage; fi
+      if [ "${LOG_STEPS}" = "" ]; then usage; fi
  
       # converting to an array
       samplelist=( $(cat sample_info.txt | grep $PLATFORM | cut -f 1) );
  
-      step "Merge all vcf files"
+      step "Merge all vcf files" > $LOG_STEPS 2>&1;
       # RF checking to see if there's only one vcf file for this technology
       if [ ${#samplelist[@]} == 0 ]; then
           echo " - No samples detected for this platform ($PLATFORM). Exiting!";
           try exit 1;
       elif [ ${#samplelist[@]} == 1 ]; then
           echo " - Only one sample";
-          try cat "${samplelist[@]}" > $pwd/tmp/combined_$PLATFORM.vcf;
+          try cat "${samplelist[@]}" > $pwd/$SNGTMP/combined_$PLATFORM.vcf;
       else
           echo " - Merging samples";
-          try $SNGBCFTOOLS/bcftools merge "${samplelist[@]}" > $pwd/tmp/combined_$PLATFORM.vcf
-      fi
-      next
+          try $SNGBCFTOOLS/bcftools merge "${samplelist[@]}" > $pwd/$SNGTMP/combined_$PLATFORM.vcf
+      fi >> $LOG_STEPS 2>&1;
+      next >> $LOG_STEPS 2>&1;
  
-      step "Run VT and VEP on combined"
-      pipeline $pwd/tmp/combined_$PLATFORM.vcf;
-      next
+      step "Run VT and VEP on combined" >> $LOG_STEPS 2>&1;
+      pipeline $pwd/$SNGTMP/combined_$PLATFORM.vcf >> $LOG_STEPS 2>&1;
+      next >> $LOG_STEPS 2>&1;
  
-      step "Load into gemini";
-      try load_into_gemini  $pwd/tmp combined_$PLATFORM.d.n.vep.vcf.gz
-      next 
+      step "Load into gemini" >> $LOG_STEPS 2>&1;
+      try load_into_gemini  $pwd/$SNGTMP combined_$PLATFORM.d.n.vep.vcf.gz >> $LOG_STEPS 2>&1;
+      next >> $LOG_STEPS 2>&1;
 
-      echo "Done!"
+      echo "$0 Done!"
   }
 
 pipeline(){
@@ -74,7 +74,7 @@ fi
 local OUTNAME=
 local INNAME=
 
-local WORKINGDIR=$pwd/tmp
+local WORKINGDIR=$pwd/$SNGTMP
 
 # run vt_pipeline
 vt_pipeline $1 INNAME $WORKINGDIR;

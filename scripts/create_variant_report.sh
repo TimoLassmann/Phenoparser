@@ -52,7 +52,7 @@ R -e "rmarkdown::render('$reportname')"
 
 echo "$timestamp $reportname";
 
-echo "DONE."
+echo "$0 DONE."
 }
 
 main "$@"

@@ -7,7 +7,7 @@ pwd=$(pwd)
 
 usage() {
 cat <<EOF
-usage: $0  -i <inputdir> -d <HPOdatabase> -l <logfile>
+usage: $0 -d <HPOdatabase> -l <logfile>
 EOF
 exit 1;
 }
@@ -15,29 +15,29 @@ exit 1;
 main() {
 LOG_STEPS=
 OUT_DATABASE=
-INDIR=
+INDIR=$pwd/$SNGTMP
 
-while getopts d:i:l: opt
+while getopts d:l: opt
 do
   case ${opt} in
       d) OUT_DATABASE=${OPTARG};;
-      i) INDIR=${OPTARG};;
       l) LOG_STEPS=${OPTARG};;
       *) usage;;
   esac
 done
 
 if [ "${OUT_DATABASE}" = "" ]; then usage; fi
-if [ "${INDIR}" = "" ]; then usage; fi
+if [ "${LOG_STEPS}" = "" ]; then usage; fi
 
 for file in $(find $INDIR -name *.vcf  -and ! -name "*.d.vcf"  -and ! -name "*combined*"  -type f); do  
   make_phenotype_tables $file $INDIR;
-done  
+done > $LOG_STEPS 2>&1;
+
 
 # not needed as docker not involved here
 # cleanup_docker
 
-echo "DONE."
+echo "$0 DONE!"
 }
 
 make_phenotype_tables() {

@@ -32,15 +32,15 @@ main() {
 
     if [ "${INDIR}" = "" ]; then usage; fi
     
-    make_clean_copy_of_input;
+    make_clean_copy_of_input > $LOG_STEPS 2>&1;
 
     # run vt on input files... 
-    for file in $(find tmp -name *.vcf -type f); do
+    for file in $(find $SNGTMP -name *.vcf -type f); do
         if ! [[ $file =~ ".d.vcf" ]]; then
             echo "$file running";
             pipeline $file;
         fi;
-    done
+    done >> $LOG_STEPS 2>&1;
 
     # run vt on input files...
 #    export -f pipeline
@@ -62,17 +62,17 @@ main() {
 #    export -f sanity_check_vcf_files
 #    list=( $(find tmp -name *.d.n.vcf.gz -type f) );
 #    parallel --no-notice -j $NUM_THREADS sanity_check_vcf_files ::: "${list[@]}"
-    for file in $(find tmp -name *.d.n.vcf.gz -type f); do
+    for file in $(find $SNGTMP -name *.d.n.vcf.gz -type f); do
         sanity_check_vcf_files $file;
-    done
+    done >> $LOG_STEPS 2>&1;
     exit;    
-    echo "DONE!!! Hurrah ";
+    echo "$0 DONE!";
 
 }
 
 make_clean_copy_of_input() {
     
-    local WORKINGDIR=$pwd/tmp/ 
+    local WORKINGDIR=$pwd/$SNGTMP 
     step "Create working directory";
     try make_working_directory $WORKINGDIR
     next
@@ -188,7 +188,7 @@ pipeline() {
     fi
 
     local INNAME=;
-    local WORKINGDIR=$pwd/tmp;
+    local WORKINGDIR=$pwd/$SNGTMP;
 
     vt_pipeline $1 INNAME $WORKINGDIR;
 

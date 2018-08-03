@@ -7,7 +7,7 @@ pwd=$(pwd)
 
 usage() {
 cat <<EOF
-usage: $0  -g <gemini_database> -d <phenoparser database> -t <report template>
+usage: $0  -g <gemini_database> -d <phenoparser database> -t <report template> -l <logfile>
 EOF
   exit 1;
 }
@@ -18,13 +18,15 @@ main() {
   GEMINI_DATABASEPATH=
   DATABASEPATH=
   TEMPLATE=
+  LOG_STEPS=
 
-  while getopts g:d:t:  opt
+  while getopts g:d:t:l:  opt
   do
       case ${opt} in
 	  g) GEMINI_DATABASEPATH=${OPTARG};;
 	  d) DATABASEPATH=${OPTARG};;
 	  t) TEMPLATE=${OPTARG};;
+	  l) LOG_STEPS=${OPTARG};;
 	  *) usage;;
       esac
   done
@@ -32,6 +34,7 @@ main() {
   if [ "${GEMINI_DATABASEPATH}" = "" ]; then usage; fi
   if [ "${DATABASEPATH}" = "" ]; then usage; fi
   if [ "${TEMPLATE}" = "" ]; then usage; fi
+  if [ "${LOG_STEPS}" = "" ]; then usage; fi
 
   samples_array=( $(gemini query -q "select name from samples" $GEMINI_DATABASEPATH) )
 
@@ -39,9 +42,9 @@ main() {
       step "Creating report for $i"
       try create_variant_report.sh -i $i -g $GEMINI_DATABASEPATH -d $DATABASEPATH -t $TEMPLATE -o $SNGHPOBO
       next 
-  done
+  done > $LOG_STEPS 2>&1;
 
-  echo "DONE!!! Hurrah ";
+  echo "$0 DONE!";
 }
 
 main "$@"
