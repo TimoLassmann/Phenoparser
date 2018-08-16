@@ -55,6 +55,8 @@ Also, if the pipeline is to be used by multiple people on a given server then th
 In sng_config:<br/>
     `SNGVEPTMP=/path/to/installed/vep/cache`<br/>
 
+**GEMINI**
+
 GEMINI solely supports human genetic variation mapped to build 37 (aka hg19) of the human genome so be sure to obtain GRCh37 Ensembl data.
 
 **R**
@@ -121,8 +123,8 @@ SNGVTBIN="/usr/local/src/vt/"
 SNGVTREF="/usr/local/src/vt/hg19/hg19.fa.gz"
 # this is the directory where the VEP binary lives
 SNGVEPBIN="/usr/local/src/vep/"
-# this is the directory where VEP has installed its cache and plugins
-SNGVEPTMP="veptmp"
+# this is the directory where VEP has installed its cache and plugins - see note above
+SNGVEPTMP="/home/vep_cache"
 # this is the directory where the bgzipped genome assembly file for VEP lives
 SNGVEPREF="/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa"
 # this is the phenolyzer root directory where the disease_annotation.pl perl script lives 
