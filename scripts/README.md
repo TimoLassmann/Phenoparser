@@ -10,25 +10,25 @@ Software installation
 
 The pipeline applies the following steps to patient VCF files and accompanying annotation:
 
-|  **Step**                  |  **Software**                                                                         |  **Purpose**                                                                                                                         | 
-| ---------------------------| --------------------------------------------------------------------------------------| -------------------------------------------------------------------------------------------------------------------------------------|
-|  **Data cleaning**         |                                                                                       |  Get all vcf files into a comparable state
-|  Decompose                 |  vt ( <https://genome.sph.umich.edu/wiki/Vt> )                                        |  Decompose multiallelic variants
-|  Normalize                 |  vt                                                                                   |  Standardize vcf format (see [Tan paper](https://academic.oup.com/bioinformatics/article/31/13/2202/196142) )
-|  =====                     |                                                                                       |
-|  **Phenotype data**        |                                                                                       |  Parse phenotype data
-|  Create gene panels        |  phenoparser ( <https://github.com/TimoLassmann/Phenoparser> )                        |  A simple C program to query omim and run phenolyzer, storing all results in a database
-|                            |  requires: phenolyzer ( <http://phenolyzer.wglab.org/> )                              |  Creates gene lists (panels) from input HPO terms
-|                            |  requires: sqlite ( <https://www.sqlite.org/download.html> )                          |  A single database is used to store all data 
-|  =====                     |                                                                                       |
-|  **Variant data**          |                                                                                       |  Annotate and store/manage variant data
-|  Annotation                |  Variant Effect Predictor ( <https://www.ensembl.org/info/docs/tools/vep/index.html> )|  Add annotation prior to import into Gemini
-|  Storage/management        |  GEMINI ( <https://gemini.readthedocs.io/en/latest/> )                                |  Database holding variants and annotation; can be queried using sql statements
-|                            |  requires: sqlite ( <https://www.sqlite.org/download.html> )                          |  We generate a separate database for each sequencing technology (IonTorrent, Illumina and Solid)
-|                            |  requires: perl                                                                       |
-|  =====                     |                                                                                       |
-|  **Reporting**             |                                                                                       |  
-|  Generate patient reports  |  Shell script and R ( <https://www.r-project.org/> )                                  |  Extracts variant information and combines it with phenotype data into one report of ranked candidate causal variants
+|  **Step**                  |  **Software**                                                                           |  **Purpose**                                                                                                                         | 
+| ---------------------------| ----------------------------------------------------------------------------------------| -------------------------------------------------------------------------------------------------------------------------------------|
+|  **Data cleaning**         |                                                                                         |  Get all vcf files into a comparable state
+|  Decompose                 |  [vt] ( <https://genome.sph.umich.edu/wiki/Vt> )                                        |  Decompose multiallelic variants
+|  Normalize                 |  vt                                                                                     |  Standardize vcf format (see [Tan paper](https://academic.oup.com/bioinformatics/article/31/13/2202/196142) )
+|  =====                     |                                                                                         |
+|  **Phenotype data**        |                                                                                         |  Parse phenotype data
+|  Create gene panels        |  [phenoparser] ( <https://github.com/TimoLassmann/Phenoparser> )                        |  A simple C program to query omim and run phenolyzer, storing all results in a database
+|                            |  requires: [phenolyzer] ( <http://phenolyzer.wglab.org/> )                              |  Creates gene lists (panels) from input HPO terms
+|                            |  requires: [sqlite] ( <https://www.sqlite.org/download.html> )                          |  A single database is used to store all data 
+|  =====                     |                                                                                         |
+|  **Variant data**          |                                                                                         |  Annotate and store/manage variant data
+|  Annotation                |  [Variant Effect Predictor] ( <https://www.ensembl.org/info/docs/tools/vep/index.html> )|  Add annotation prior to import into Gemini
+|  Storage/management        |  [GEMINI] ( <https://gemini.readthedocs.io/en/latest/> )                                |  Database holding variants and annotation; can be queried using sql statements
+|                            |  requires: [sqlite] ( <https://www.sqlite.org/download.html> )                          |  We generate a separate database for each sequencing technology (IonTorrent, Illumina and Solid)
+|                            |  requires: perl                                                                         |
+|  =====                     |                                                                                         |
+|  **Reporting**             |                                                                                         |  
+|  Generate patient reports  |  Shell script and [R] ( <https://www.r-project.org/> )                                  |  Extracts variant information and combines it with phenotype data into one report of ranked candidate causal variants
 |                            |  requires: [Human Phenotype Ontology](<https://github.com/obophenotype/human-phenotype-ontology>) hp.obo file                           |  
 
 In addition to the scripts in this distribution (detailed below), the highlighted software components in the table above need to be installed for the pipeline to work.
@@ -49,6 +49,11 @@ Use Assembly [version 84](<https://bit.ly/2uQa9oB>)<br/>
 In sng_config:<br/>
     `SNGVEPBIN=/path/to/installed/vep`<br/>
     `SNGVEPREF=/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa`<br/>
+
+Also, if the pipeline is to be used by multiple people on a given server then the VEP cache directory should be accessible to all. By default this directory is created in the installing user's `$HOME/.vep`. However, this will prevent others from accessing it. Instead, use the `--dir` option as [here](<https://www.ensembl.org/info/docs/tools/vep/script/vep_options.html#cacheopt>) to specify a communal directory for this data and refer to this using SNGVEPTMP.<br/>
+
+In sng_config:<br/>
+    `SNGVEPTMP=/path/to/installed/vep/cache`<br/>
 
 GEMINI solely supports human genetic variation mapped to build 37 (aka hg19) of the human genome so be sure to obtain GRCh37 Ensembl data.
 
@@ -93,11 +98,11 @@ The pipeline consists of various scripts that process the input data and run the
 SNG Config File
 ---------------
 
-The code ships with a sample config file. This is essentially a list of environment variables denoting the location of the relevant software components
+The code ships with a sample config file. This is essentially a list of environment variables denoting the location of the relevant software components and data containing or temporary directories
 
 ```bash
 # this is the directory to which all patient data is copied and where the pipeline writes temporary files
-export SNGTMP="tmp"
+SNGTMP="tmp"
 # this is the directory where the gemini binary lives
 SNGGEMINIBIN="....gemini/tools/bin/"
 # a temp directory that is made in your patient_analysis folder to store temporary Gemini files
@@ -116,7 +121,7 @@ SNGVTBIN="/usr/local/src/vt/"
 SNGVTREF="/usr/local/src/vt/hg19/hg19.fa.gz"
 # this is the directory where the VEP binary lives
 SNGVEPBIN="/usr/local/src/vep/"
-# this is the directory where VEP can store temporary files
+# this is the directory where VEP has installed its cache and plugins
 SNGVEPTMP="veptmp"
 # this is the directory where the bgzipped genome assembly file for VEP lives
 SNGVEPREF="/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa"
@@ -190,7 +195,7 @@ build_gemini_db.sh -p Torrent -d Torrent.db -l gatk.log
 Make Omim database
 ------------------
 
-The script `make_omim_database.sh` runs [phenoparser]( <https://github.com/TimoLassmann/Phenoparser> ) to extract information from the OMIM database based on any supplied omim phenotypic terms for each patient.
+The script `make_omim_database.sh` runs [phenoparser]( <https://github.com/TimoLassmann/Phenoparser> ) to extract information from the OMIM database based on any supplied OMIM phenotypic terms for each patient.
 It also pulls down Phenotypic Series records - collections of entries with overlapping clinical manifestations. In all cases, disease associated genes and annotation are retrieved and stored in an SQLite database
 to make sure the analysis is reproducible even if OMIM changes. This also allows you to re-run previously un-diagnosed cases if there is a major update.
 
@@ -236,18 +241,18 @@ Patient reports
 
 The pipeline uses RMarkown and knitr to create per-patient reports. A template contains special variables that are replaced by patient details.
 
-Either a single report can be generated for a list of patient IDs or reports for all patients can be create.
+Either a single report can be generated for a list of patient IDs or reports for all patients can be created.
 
 The script `create_variant_reports.sh` brings all the data together into one report. It extracts variants together with their annotation from gemini and overlays in
 silico gene panels from OMIM and Phenolyzer.  The script works by copying a report template, replacing placeholder variables with patient data and then running the template in R. The
-output is a html file containing information about the analysis as well as a tab separated file with the variant table.
+output is a html file containing information about the analysis as well as a tab separated file with the variant table, which is ranked in order of importance.
 
 The options are:
 
 ```
--i <patient id - comma separated list or leave blank to produce reports for all patients>
+-i <patient id - comma separated list or absent to produce reports for all patients>
 -g <gemini database path for a particular platform>
--p <phenotype database path>
+-d <phenotype database path>
 -t <report template>
 -l <logfile to keep track of what is happening>
 ```
@@ -256,17 +261,17 @@ Example usage:
 
 ```
 # specific patients
-create_variant_reports.sh -i patient1,patient2 -g Torrent.db -p omim.db -t report_master_template.Rmd -l reports.log
+create_variant_reports.sh -i "patient1,patient2" -g Torrent.db -d omim.db -t report_master_template.Rmd -l reports.log
 
 # all patients
-create_variant_reports.sh -g Torrent.db -p omim.db -t report_master_template.Rmd -l reports.log
+create_variant_reports.sh -g Torrent.db -d omim.db -t report_master_template.Rmd -l reports.log
 ```
 
 ### Template
 
 The template `report_V2_template.Rmd` combines variants and disease annotation from the various sources generated in the pipeline.
-It then orders the subsequence interactive table so as to place the most likely causative variants at the top of the list.
-Additional annoation is presented such as HGVS expressions, links out to UniProt and ClinVar plus other useful references.
+It then orders the subsequent interactive table so as to place the most likely causative variants at the top of the list.
+Additional annotation is presented such as HGVS expressions, links out to UniProt and ClinVar plus other useful references.
 
 
 Complete script
@@ -278,21 +283,27 @@ A complete script to run the entire pipeline can be created, which might look so
 #!/usr/bin/env bash
 
 # source the config file
-. /home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/sng_config
+. ./sng_config
+
 # make a clean copy of the data and merge
-#run_pre_merge.sh -i /home/richard/data/patient_data -l pre_merge_log
+run_pre_merge.sh -i ~/data/patient_data -l pre_merge_log
+
 # create gemini databases for the three platforms
 build_gemini.sh -p GATK -d GATK.db -l gatk.log
 build_gemini.sh -p Torrent -d Torrent.db -l torrent.log
 build_gemini.sh -p Life -d Life.db -l life.log
+
 # make an omim database - uses phenoparser
-make_omim_database.sh -i tmp/ -d omim.db -l omim.log -k Wqy5lssmS7uWGdpyy8H9zw
+make_omim_database.sh -d omim.db -l omim.log -k <OMIM_KEY>
+
 # add phenolyzer data to omim database - uses phenoparser
-make_extended_phenolyzer_database.sh -i tmp -d omim.db -l phenolyzer.log
+make_extended_phenolyzer_database.sh -d omim.db -l phenolyzer.log
+
 # create a patient report
-#create_variant_report.sh -i 07_D14-0866 -g Torrent.db -d omim.db -t /home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/report_V2_template.Rmd -o /home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/hp.obo
+##create_variant_reports.sh -i "patient1,patient2" -g Torrent.db -d omim.db -t $SNGSCRIPTS/report_V2_template.Rmd -l reports.log
+
 # or all patient reports
-create_all_variant_reports.sh -g Torrent.db -d omim.db -t /home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/report_V2_template.Rmd -o /home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/hp.obo
-create_all_variant_reports.sh -g GATK.db -d omim.db -t /home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/report_V2_template.Rmd -o /home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/hp.obo
-create_all_variant_reports.sh -g Life.db -d omim.db -t /home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/report_V2_template.Rmd -o /home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/hp.obo
+create_variant_reports.sh -g Torrent.db -d omim.db -t $SNGSCRIPTS/report_V2_template.Rmd -l reports.log
+create_variant_reports.sh -g GATK.db -d omim.db -t $SNGSCRIPTS/report_V2_template.Rmd -l reports.log
+create_variant_reports.sh -g Life.db -d omim.db -t $SNGSCRIPTS/report_V2_template.Rmd -l reports.log
 ```
