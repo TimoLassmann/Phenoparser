@@ -10,25 +10,25 @@ Software installation
 
 The pipeline applies the following steps to patient VCF files and accompanying annotation:
 
-|  **Step**                  |  **Software**                                                                           |  **Purpose**                                                                                                                         | 
-| ---------------------------| ----------------------------------------------------------------------------------------| -------------------------------------------------------------------------------------------------------------------------------------|
-|  **Data cleaning**         |                                                                                         |  Get all vcf files into a comparable state
-|  Decompose                 |  [vt] ( <https://genome.sph.umich.edu/wiki/Vt> )                                        |  Decompose multiallelic variants
-|  Normalize                 |  vt                                                                                     |  Standardize vcf format (see [Tan paper](https://academic.oup.com/bioinformatics/article/31/13/2202/196142) )
-|  =====                     |                                                                                         |
-|  **Phenotype data**        |                                                                                         |  Parse phenotype data
-|  Create gene panels        |  [phenoparser] ( <https://github.com/TimoLassmann/Phenoparser> )                        |  A simple C program to query omim and run phenolyzer, storing all results in a database
-|                            |  requires: [phenolyzer] ( <http://phenolyzer.wglab.org/> )                              |  Creates gene lists (panels) from input HPO terms
-|                            |  requires: [sqlite] ( <https://www.sqlite.org/download.html> )                          |  A single database is used to store all data 
-|  =====                     |                                                                                         |
-|  **Variant data**          |                                                                                         |  Annotate and store/manage variant data
-|  Annotation                |  [Variant Effect Predictor] ( <https://www.ensembl.org/info/docs/tools/vep/index.html> )|  Add annotation prior to import into Gemini
-|  Storage/management        |  [GEMINI] ( <https://gemini.readthedocs.io/en/latest/> )                                |  Database holding variants and annotation; can be queried using sql statements
-|                            |  requires: [sqlite] ( <https://www.sqlite.org/download.html> )                          |  We generate a separate database for each sequencing technology (IonTorrent, Illumina and Solid)
-|                            |  requires: perl                                                                         |
-|  =====                     |                                                                                         |
-|  **Reporting**             |                                                                                         |  
-|  Generate patient reports  |  Shell script and [R] ( <https://www.r-project.org/> )                                  |  Extracts variant information and combines it with phenotype data into one report of ranked candidate causal variants
+|  **Step**                  |  **Software**                                                                         |  **Purpose**                                                                                                                         | 
+| ---------------------------| --------------------------------------------------------------------------------------| -------------------------------------------------------------------------------------------------------------------------------------|
+|  **Data cleaning**         |                                                                                       |  Get all vcf files into a comparable state
+|  Decompose                 |  [vt](<https://genome.sph.umich.edu/wiki/Vt>)                                         |  Decompose multiallelic variants
+|  Normalize                 |  vt                                                                                   |  Standardize vcf format (see [Tan paper](https://academic.oup.com/bioinformatics/article/31/13/2202/196142) )
+|  =====                     |                                                                                       |
+|  **Phenotype data**        |                                                                                       |  Parse phenotype data
+|  Create gene panels        |  [phenoparser](<https://github.com/TimoLassmann/Phenoparser>)                         |  A simple C program to query omim and run phenolyzer, storing all results in a database
+|                            |  requires: [phenolyzer](<http://phenolyzer.wglab.org/>)                               |  Creates gene lists (panels) from input HPO terms
+|                            |  requires: [sqlite](<https://www.sqlite.org/download.html>)                           |  A single database is used to store all data 
+|  =====                     |                                                                                       |
+|  **Variant data**          |                                                                                       |  Annotate and store/manage variant data
+|  Annotation                |  [Variant Effect Predictor](<https://www.ensembl.org/info/docs/tools/vep/index.html>) |  Add annotation prior to import into Gemini
+|  Storage/management        |  [GEMINI](<https://gemini.readthedocs.io/en/latest/>)                                 |  Database holding variants and annotation; can be queried using sql statements
+|                            |  requires: [sqlite](<https://www.sqlite.org/download.html>)                           |  We generate a separate database for each sequencing technology (IonTorrent, Illumina and Solid)
+|                            |  requires: perl                                                                       |
+|  =====                     |                                                                                       |
+|  **Reporting**             |                                                                                       |  
+|  Generate patient reports  |  Shell script and [R](<https://www.r-project.org/>)                                   |  Extracts variant information and combines it with phenotype data into one report of ranked candidate causal variants
 |                            |  requires: [Human Phenotype Ontology](<https://github.com/obophenotype/human-phenotype-ontology>) hp.obo file                           |  
 
 In addition to the scripts in this distribution (detailed below), the highlighted software components in the table above need to be installed for the pipeline to work.
