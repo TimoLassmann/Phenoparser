@@ -50,7 +50,7 @@ In sng_config:<br/>
     `SNGVEPBIN=/path/to/installed/vep`<br/>
     `SNGVEPREF=/path/to/bgzipped/Homo_sapiens.GRCh37.dna.primary_assembly.fa`<br/>
 
-Also, if the pipeline is to be used by multiple people on a given server then the VEP cache directory should be accessible to all. By default this directory is created in the installing user's `$HOME/.vep`. However, this will prevent others from accessing it. Instead, use the `--dir` option as [here](<https://www.ensembl.org/info/docs/tools/vep/script/vep_options.html#cacheopt>) to specify a communal directory for this data and refer to this using SNGVEPTMP.<br/>
+Also, if the pipeline is to be used by multiple people on a given server then the VEP cache directory should be accessible to all. By default this directory is created in the installing user's `$HOME/.vep`. However, this will prevent others from accessing it. Instead, use the `--dir` option as [here](<https://www.ensembl.org/info/docs/tools/vep/script/vep_options.html#cacheopt>) to specify a communal directory for this data and refer to this in your config file using `SNGVEPTMP`.<br/>
 
 In sng_config:<br/>
     `SNGVEPTMP=/path/to/installed/vep/cache`<br/>
