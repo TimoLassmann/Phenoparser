@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# this is the directory to which all patient data is copied and where the pipeline writes temporary files
+export SNGTMP="tmp"
 # this is the directory where the gemini binary lives
 export SNGGEMINIBIN="/home/richard/pipeline/gemini/tools/bin/"
 # a temp directory that is made in your patient_analysis folder to store temporary Gemini files
@@ -18,8 +20,8 @@ export SNGVTBIN="/usr/local/src/vt/"
 export SNGVTREF="/usr/local/src/vt/hg19/hg19.fa.gz"
 # this is the directory where the VEP binary lives
 export SNGVEPBIN="/usr/local/src/vep/ensembl-tools-release-84/scripts/variant_effect_predictor/"
-# this is the directory where VEP can store temporary files
-export SNGVEPTMP="veptmp"
+# this is the directory where VEP has installed its cache and plugins
+export SNGVEPTMP="/home/vep_cache"
 # this is the directory where the bgzipped reference assembly for VEP lives
 export SNGVEPREF="/usr/local/src/vep/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz"
 # this is the phenolyzer root directory where the disease_annotation.pl perl script lives 
