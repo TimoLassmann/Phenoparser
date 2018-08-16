@@ -132,6 +132,9 @@ local myresultname=$(basename "$3" | cut -d. -f1).d.n.vep.vcf
 
 #$SNGDOCKERCMD run -v $2:/data seqnextgen_vep perl /src/ensembl-tools-release-82/scripts/variant_effect_predictor/variant_effect_predictor.pl -i /data/$3 -o /data/$myresultname --vcf --fork $NUM_THREADS --offline --cache --sift b --polyphen b --symbol --numbers --biotype --total_length --fields Consequence,Codons,Amino_acids,Gene,SYMBOL,Feature,EXON,PolyPhen,SIFT,Protein_position,BIOTYPE --assembly GRCh37 --dir_cache /root/.vep
 #$SNGDOCKERCMD run -v $2:/data seqnextgen_vep2 perl /src/ensembl-tools-release-82/scripts/variant_effect_predictor/variant_effect_predictor.pl -i /data/$3 -o /data/$myresultname --vcf --fork $NUM_THREADS --offline --cache --sift b --polyphen b --symbol --numbers --biotype --total_length --hgvs --fasta /src/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz --fields Consequence,Codons,Amino_acids,Gene,SYMBOL,Feature,EXON,PolyPhen,SIFT,Protein_position,BIOTYPE,HGVSc,HGVSp,HGVS_OFFSET --assembly GRCh37 --dir_cache /root/.vep
+if [ ! -d "$SNGVEPTMP" ]; then
+ echo "VEP cache directory $SNGVEPTMP does not exist. See documentation.";
+fi
 perl $SNGVEPBIN/variant_effect_predictor.pl -i $2/$3 -o $2/$myresultname --vcf --fork $NUM_THREADS --offline --cache --sift b --polyphen b --symbol --numbers --biotype --total_length --hgvs --fasta $SNGVEPREF --fields Consequence,Codons,Amino_acids,Gene,SYMBOL,Feature,EXON,PolyPhen,SIFT,Protein_position,BIOTYPE,HGVSc,HGVSp,HGVS_OFFSET --assembly GRCh37 --dir_cache $SNGVEPTMP
 
 eval $__resultname="'$myresultname'"

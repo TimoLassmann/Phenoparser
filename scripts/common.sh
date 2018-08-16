@@ -179,7 +179,7 @@ echo_failure() {
 }
 
 step() {
-    echo -n "STEP: $@"
+    echo "STEP: $@"
 
     STEP_OK=0
     [[ -w /tmp ]] && echo $STEP_OK > /tmp/step.$$
