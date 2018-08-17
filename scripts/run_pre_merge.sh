@@ -72,6 +72,23 @@ main() {
 
 make_clean_copy_of_input() {
     
+    # for individual files we specify a file structure to work with:
+	#/home/user/patient_data/D12-3456/
+	#├── pheno
+	#│   ├── hpo.txt
+	#│   └── omim.txt
+	#└── vcf
+	#    └── D12-3456.vcf
+    # for pre-merged files we can have an alternative structure
+	#/home/user/patient_data/
+	#├── pheno
+	#│   ├── D12-3456_hpo.txt
+	#│   └── D12-3456_omim.txt
+	#│   ├── D98-7654_hpo.txt
+	#│   └── D98-7654_omim.txt
+	#└── vcf
+	#    └── merged.vcf
+
     local WORKINGDIR=$pwd/$SNGTMP 
     step "Create working directory";
     try make_working_directory $WORKINGDIR
@@ -91,12 +108,14 @@ make_clean_copy_of_input() {
         if file_exists $WORKINGDIR/$basefilename; then
             echo "Warning: $WORKINGDIR/$basefilename exists.";
         else
-       
             try cp $file $WORKINGDIR
             try chmod 700 $WORKINGDIR/$basefilename
             local SAMPLENAME=
             get_sampleID_from_vcf_file SAMPLENAME $WORKINGDIR/$basefilename;
        
+            # this should only really fire in the case of individual vcf files that do not contain a sampleID
+            # hopefully in the case of already merged files, the sample IDs have been appropriately merged and are not "Unknown", consequently this will not fire
+            # in this case though $SAMPLENAME will contain all sampleIDs from the merged file. This needs to be dealt with differently below when finding hpo and omim files
             if [ "$SAMPLENAME" = "Unknown" ]; then
                 local BASEDIR=$(dirname "$file") 
                 local BASEDIR=$(echo $BASEDIR | rev | cut -d'/' -f2- | rev)
@@ -118,27 +137,53 @@ make_clean_copy_of_input() {
             BASEDIR=$(dirname "$file") 
             BASEDIR=$(echo $BASEDIR | rev | cut -d'/' -f2- | rev)
 
-            echo "$SAMPLENAME";
-            #
-            # Look for omim 
-            #
-            if [ -f $BASEDIR/pheno/omim.txt ]; then
-                newname="$SAMPLENAME"
-                newname+="_omim.txt"
-           
-                try cp $BASEDIR/pheno/omim.txt $WORKINGDIR/$newname
-                try chmod 700 $WORKINGDIR/$newname
-            fi
-            #
-            # Look for hpo file...
-            #
-            if [ -f $BASEDIR/pheno/hpo.txt ]; then
-                newname="$SAMPLENAME"
-                newname+="_hpo.txt"
-           
-                try cp $BASEDIR/pheno/hpo.txt $WORKINGDIR/$newname
-                try chmod 700 $WORKINGDIR/$newname
-            fi
+            # for individual files $BASENAME will be /home/user/patient_data/D12-3456/
+            # for merged files $BASENAME will be /home/user/patient_data/
+
+            # As merged files will lead to many patients in $SAMPLENAME this needs to be converted to an array for this next bit
+            # individual files will have a single element
+            patientID_arr=( $SAMPLENAME );
+            for i in ${patientID_arr[@]}; do
+             #
+             # Look for omim 
+             #
+             if [ -f $BASEDIR/pheno/omim.txt ]; then
+                 newname="$SAMPLENAME"
+                 newname+="_omim.txt"
+            
+                 try cp $BASEDIR/pheno/omim.txt $WORKINGDIR/$newname
+                 try chmod 700 $WORKINGDIR/$newname
+             fi
+             #
+             # Look for hpo file...
+             #
+             if [ -f $BASEDIR/pheno/hpo.txt ]; then
+                 newname="$SAMPLENAME"
+                 newname+="_hpo.txt"
+            
+                 try cp $BASEDIR/pheno/hpo.txt $WORKINGDIR/$newname
+                 try chmod 700 $WORKINGDIR/$newname
+             fi
+
+             #
+             # Look for omim 
+             #
+             if [ -f $BASEDIR/pheno/$i\_omim.txt ]; then
+                 newname=$i"_omim.txt"
+            
+                 try cp $BASEDIR/pheno/$newname $WORKINGDIR/$newname
+                 try chmod 700 $WORKINGDIR/$newname
+             fi
+             #
+             # Look for hpo file...
+             #
+             if [ -f $BASEDIR/pheno/$i\_hpo.txt ]; then
+                 newname=$i"_hpo.txt"
+            
+                 try cp $BASEDIR/pheno/$newname $WORKINGDIR/$newname
+                 try chmod 700 $WORKINGDIR/$newname
+             fi
+            done;
         fi
         next
     done
@@ -159,17 +204,25 @@ sanity_check_vcf_files() {
     local SAMPLENAME=
 
     get_sampleID_from_vcf_file SAMPLENAME $1;
-    
+
     DIRNAME=$(basename $BASEDIR)
 
     SOURCE=$( $SNGBCFTOOLS/bcftools view -h $1 |  grep "^##source=" | sed 's/^##source=//' | perl -pe 's/[\n,\t, ]+/_/g' );
 
     REF=$( $SNGBCFTOOLS/bcftools view -h $1 | grep "^##reference=" | sed 's/^##reference=//' | perl -pe 's/[\n,\t, ]+/_/g' );
 
+    # As merged files will lead to many patients in $SAMPLENAME this needs to be converted to an array for this next bit
+    # there needs to be one entry per patient in this file
+    patientID_arr=( $SAMPLENAME );
+    for i in ${patientID_arr[@]}; do
+
 #exec 200>/var/lock/mylockfile || exit 1
 #flock 200 || exit 1
-    printf "%s\t%s\t%s\t%s\n"  "$1" "$SAMPLENAME" "$SOURCE" "$REF" >> sample_info.txt;
+    #printf "%s\t%s\t%s\t%s\n"  "$1" "$SAMPLENAME" "$SOURCE" "$REF" >> sample_info.txt;
+     printf "%s\t%s\t%s\t%s\n"  "$1" "$i" "$SOURCE" "$REF" >> sample_info.txt;
 #flock -u 200
+
+    done;
 }
 
 pipeline() {

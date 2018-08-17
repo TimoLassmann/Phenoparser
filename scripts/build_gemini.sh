@@ -37,7 +37,8 @@ main(){
       if [ "${LOG_STEPS}" = "" ]; then usage; fi
  
       # converting to an array
-      samplelist=( $(cat sample_info.txt | grep $PLATFORM | cut -f 1) );
+      # the use of sort -u allows pre-merged vcf files to be used
+      samplelist=( $(cat sample_info.txt | grep $PLATFORM | cut -f 1 | sort -u) );
  
       step "Merge all vcf files" > $LOG_STEPS 2>&1;
       # RF checking to see if there's only one vcf file for this technology
@@ -45,7 +46,7 @@ main(){
           echo " - No samples detected for this platform ($PLATFORM). Exiting!";
           try exit 1;
       elif [ ${#samplelist[@]} == 1 ]; then
-          echo " - Only one sample";
+          echo " - Only one sample file";
           try cat "${samplelist[@]}" > $pwd/$SNGTMP/combined_$PLATFORM.vcf;
       else
           echo " - Merging samples";

@@ -78,6 +78,11 @@ Data Organisation
 =================
 
 Create a directory to store the raw patient data.
+The pipeline can handle individual patient VCF files or a single pre-merged VCF file and accompanying phenotype data.
+
+Individual VCF
+--------------
+
 For each patient, create one directory named after the patient ID (preferably the one used in the generation of the VCF file).
 In this directory, create two sub-directories: vcf and pheno. The latter contains text files with the phenotype / disease annotation.
 
@@ -87,6 +92,22 @@ In this directory, create two sub-directories: vcf and pheno. The latter contain
     │   └── omim.txt
     └── vcf
         └── D12-3456.vcf
+
+Merged VCF
+----------
+
+For a merged VCF file the structure is slightly different. Still create two sub-directories as above: vcf and pheno, then place your merged VCF file in the vcf folder.
+For each patient create <patientID>_hpo.txt and <patientID>_omim.txt files in the pheno folder where this data is available.
+The key is to make sure that the <patientID> in these file names is identical to the corresponding sample names used in the VCF file (use: `bcftools query -l file.vcf` to obtain the sample names in your VCF).
+
+    /home/user/patient_data/
+    ├── pheno
+    │   ├── D12-3456_hpo.txt
+    │   └── D12-3456_omim.txt
+    │   ├── D98-7654_hpo.txt
+    │   └── D98-7654_omim.txt
+    └── vcf
+        └── merged.vcf
 
 The analysis of this data should be performed in a separate directory. the first part of the pipeline copies all raw data to this directory to leave the original data untouched.
 

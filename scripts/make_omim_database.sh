@@ -56,19 +56,24 @@ make_phenotype_tables() {
  # BASEDIR=$(echo $BASEDIR | rev | cut -d'/' -f2- | rev)
 
  local WORKINGDIR=$pwd/$SNGTMP
- local already_processed=
- newname="$SAMPLENAME"
- newname+="_omim.txt"
 
- #
- # Look for omim 
- #
- if [ -f $BASEDIR/$newname ]; then
-     step "Retrieving OMIM info"
-     echo " $SAMPLENAME $BASEDIR/$newname $DATABASE";
-     $SNGPPBIN/phenoparser insert --id $SAMPLENAME --pheno $BASEDIR/$newname --key $OMIMKEY --db $DATABASE
-     next
- fi
+ patientID_arr=( $SAMPLENAME );
+ for i in ${patientID_arr[@]}; do
+
+  newname="$i"
+  newname+="_omim.txt"
+
+  #
+  # Look for omim 
+  #
+  if [ -f $BASEDIR/$newname ]; then
+      step "Retrieving OMIM info"
+      echo " $SAMPLENAME $BASEDIR/$newname $DATABASE";
+      #$SNGPPBIN/phenoparser insert --id $SAMPLENAME --pheno $BASEDIR/$newname --key $OMIMKEY --db $DATABASE
+      $SNGPPBIN/phenoparser insert --id $i --pheno $BASEDIR/$newname --key $OMIMKEY --db $DATABASE
+      next
+  fi
+ done;
 }
 
 main "$@";
