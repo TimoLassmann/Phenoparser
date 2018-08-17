@@ -97,8 +97,8 @@ Merged VCF
 ----------
 
 For a merged VCF file the structure is slightly different. Still create two sub-directories as above: vcf and pheno, then place your merged VCF file in the vcf folder.
-For each patient create <patientID>_hpo.txt and <patientID>_omim.txt files in the pheno folder where this data is available.
-The key is to make sure that the <patientID> in these file names is identical to the corresponding sample names used in the VCF file (use: `bcftools query -l file.vcf` to obtain the sample names in your VCF).
+For each patient create [patientID]_hpo.txt and [patientID]_omim.txt files in the pheno folder where this data is available.
+The key is to make sure that the [patientID] in these file names is identical to the corresponding sample names used in the VCF file (use: `bcftools query -l file.vcf` to obtain the sample names in your VCF).
 
     /home/user/patient_data/
     ├── pheno
