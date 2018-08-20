@@ -36,6 +36,14 @@ main() {
   if [ "${PHENO_DATABASEPATH}" = "" ]; then usage; fi
   if [ "${TEMPLATE}" = "" ]; then usage; fi
   if [ "${LOG_STEPS}" = "" ]; then usage; fi
+  if [ ! -f "$GEMINI_DATABASEPATH" ]; then 
+   echo "Your GEMINI database $GEMINI_DATABASEPATH does not exist" > $LOG_STEPS 2>&1;
+   exit 1;
+  fi
+  if [ ! -f "$PHENO_DATABASEPATH" ]; then
+   echo "Your phenotype database $PHENO_DATABASEPATH does not exist" > $LOG_STEPS 2>&1;
+   exit 1;
+  fi
 
   samples_array=();
   if [[ "$PATIENT_ID" != "" ]]; then
@@ -52,7 +60,7 @@ main() {
   fi > $LOG_STEPS 2>&1;
 
   if [ ${#samples_array[@]} -eq 0 ]; then
-   echo "No samples found in $GEMINI_DATABASEPATH named $PATIENT_ID";
+   echo "No samples found in $GEMINI_DATABASEPATH named $PATIENT_ID" > $LOG_STEPS 2>&1;
    try exit 1; 
   fi
 
