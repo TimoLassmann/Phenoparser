@@ -17,7 +17,7 @@ The pipeline applies the following steps to patient VCF files and accompanying a
 |  Normalize                 |  vt                                                                                   |  Standardize vcf format (see [Tan paper](https://academic.oup.com/bioinformatics/article/31/13/2202/196142) )
 |  =====                     |                                                                                       |
 |  **Phenotype data**        |                                                                                       |  Parse phenotype data
-|  Create gene panels        |  [phenoparser](<https://github.com/TimoLassmann/Phenoparser>)                         |  A simple C program to query omim and run phenolyzer, storing all results in a database
+|  Create gene panels        |  [phenoparser](<https://github.com/TimoLassmann/Phenoparser>)                         |  A simple C program to query [OMIM](https://www.omim.org/) and run phenolyzer, storing all results in a database
 |                            |  requires: [phenolyzer](<http://phenolyzer.wglab.org/>)                               |  Creates gene lists (panels) from input HPO terms
 |                            |  requires: [sqlite](<https://www.sqlite.org/download.html>)                           |  A single database is used to store all data 
 |  =====                     |                                                                                       |
