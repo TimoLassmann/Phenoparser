@@ -61,7 +61,7 @@ try(system2(geminibin,args=" query --header -q 'select t1.chrom, t1.start, t1.en
               t1.impact_so != \"synonymous_variant\" AND
               t1.impact_so != \"intron_variant\" AND
               (t1.cadd_scaled >= 15 OR t1.impact_severity == \"HIGH\")
-               ' VARGEMINI_DATABASEPATH --gt-filter \"gt_depths.VARPATIENT_ID > 0\" > raw_var_table_VARPATIENT_ID.tsv", stderr="R_geministderr.txt"))
+               ' VARGEMINI_DATABASEPATH --gt-filter \"gt_depths.VARPATIENT_ID > 0 and gt_types.VARPATIENT_ID != HOM_REF\" > raw_var_table_VARPATIENT_ID.tsv", stderr="R_geministderr.txt"))
 
 ```
 
