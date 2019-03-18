@@ -3,6 +3,9 @@
 import collections
 #from collections import defaultdict
 import requests
+import requests_cache
+
+requests_cache.uninstall_cache()
 #from joblib import Parallel, delayed
 #import multiprocessing
 import time

@@ -3,7 +3,7 @@
 # this is the directory to which all patient data is copied and where the pipeline writes temporary files
 export SNGTMP="tmp"
 # this is the directory where the gemini binary lives
-export SNGGEMINIBIN="/home/richard/pipeline/gemini/tools/bin/"
+export SNGGEMINIBIN="/usr/local/src/gemini/tools/bin/"
 # a temp directory that is made in your patient_analysis folder to store temporary Gemini files
 export SNGGEMINI_TMP="geminitmp"
 # this is the subdirectory of the phenoparser code that contains the pipeline scripts

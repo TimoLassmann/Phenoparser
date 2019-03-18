@@ -7,7 +7,7 @@ pwd=$(pwd)
 
 usage() {
 cat <<EOF
-usage: $0 -i <patient id> -g <gemini_database> -d <phenotype database> -t <report template> -l <logfile>
+usage: $0 -i <patient id> -g <gemini_database> -d <phenotype database> -o <gene disease database> -a <1:0> -t <report template> -l <logfile>
 EOF
   exit 1;
 }
@@ -16,16 +16,20 @@ main() {
 
   PATIENT_ID=
   GEMINI_DATABASEPATH=
-  DATABASEPATH=
+  PHENO_DATABASEPATH=
+  DISEASE_DATABASEPATH=
+  RUNACMG=
   TEMPLATE=
   LOG_STEPS=
 
-  while getopts i:g:d:t:l: opt
+  while getopts i:g:d:t:l:a:o: opt
   do
       case ${opt} in
           i) PATIENT_ID=${OPTARG};;
 	  g) GEMINI_DATABASEPATH=${OPTARG};;
 	  d) PHENO_DATABASEPATH=${OPTARG};;
+	  o) DISEASE_DATABASEPATH=${OPTARG};;
+	  a) RUNACMG=${OPTARG};;
 	  t) TEMPLATE=${OPTARG};;
 	  l) LOG_STEPS=${OPTARG};;
 	  *) usage;;
@@ -77,7 +81,12 @@ main() {
       | sed -e "s=VARPATIENT_ID=$i=g" \
       | sed -e "s=VARGEMINI_DATABASEPATH=$GEMINI_DATABASEPATH=g" \
       | sed -e "s=VARPHENO_DATABASEPATH=$PHENO_DATABASEPATH=g" \
+      | sed -e "s=VARDISEASE_DATABASEPATH=$DISEASE_DATABASEPATH=g" \
       | sed -e "s=VARPATHTOHPOOBO=$SNGHPOBO=g" \
+      | sed -e "s=VARACMG_PYPATH=$ACMG_PYPATH=g" \
+      | sed -e "s=VARRUNACMG=$RUNACMG=g" \
+      | sed -e "s=VARSNGSCRIPTS=$SNGSCRIPTS=g" \
+      | sed -e "s=VARSNGPY=$SNGPY=g" \
       > $reportname
       
       R -e "rmarkdown::render('$reportname')"

@@ -1,5 +1,6 @@
 
 ---
+title: VARPATIENT_ID
 output:
     html_document:
     keep_md: true
@@ -24,6 +25,8 @@ Sequencing platform: VARGEMINI_DATABASEPATH
               library(knitr)
               library(kableExtra)
               library(ontologyIndex)
+              library(reticulate)
+              use_python("VARSNGPY")
 ```
 
 ```{r loadOBO, warning = FALSE, message = FALSE, include=FALSE}
@@ -46,6 +49,7 @@ geminibin=paste(Sys.getenv("SNGGEMINIBIN"),"gemini",sep="/")
 try(system2(geminibin,args=" query --header -q 'select t1.chrom, t1.start, t1.end, t1.gene, t1.impact, t1.impact_severity,
               t1.cadd_scaled,t1.polyphen_score,t1.sift_score, t1.clinvar_sig,t1.max_aaf_all,t1.sub_type,t1.num_het, t1.num_hom_alt,
               t1.exon, t1.codon_change, t1.aa_change, t1.aa_length, t1.rs_ids, t1.transcript, t1.biotype, t1.vep_hgvsc, t1.vep_hgvsp,
+              t1.clinvar_causal_allele, t1.clinvar_disease_name, t1.pfam_domain, t1.is_conserved,
               gts.VARPATIENT_ID, 
               gt_depths.VARPATIENT_ID,
               gt_quals.VARPATIENT_ID,
@@ -168,7 +172,7 @@ df = df %>% left_join(pheno, by = "gene")
 
 ## Ranking of variants
 
-The table is sorted by variants in genes associated with the patients disease
+The table is sorted by variants in genes associated with the patient's disease
 phenotype and then by descending CADD score. In addition, all variants occuring
 in more than 5 patients are given a low priority. Variants with a call quality of less than 10 are discarded.
 
@@ -186,10 +190,14 @@ in more than 5 patients are given a low priority. Variants with a call quality o
 
 ```
 
-```{r Write to tsv, include=FALSE}
+```{python acmg and write,include=FALSE}
+sys.path.append('VARSNGSCRIPTS')
+from acmg import doacmg
+runacmg = VARRUNACMG
+if (runacmg == 1):
+ r.df = doacmg(r.df,"VARDISEASE_DATABASEPATH")
 
-              write.table(df, file = "VARPATIENT_ID_report_V2.tsv", append = FALSE, quote = FALSE, sep = "\t",na = "NA",row.names = FALSE,col.names = TRUE) 
-
+r.df.to_csv(path_or_buf="VARPATIENT_ID_report_V2.tsv",sep="\t",na_rep="NA",index=False)
 ```
 
 ## List of candidate variants 
@@ -215,6 +223,44 @@ Legend:
      kable(friends_data,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
 ```
 
+<style>
+table.acmgtable td:nth-child(1){
+    font-weight: bold;
+    }
+table.acmgtable td:nth-child(3){
+    font-weight: bold;
+    }
+</style>
+
+<div class="panel-group">
+ <div class="panel panel-default">
+  <div class="panel-heading">
+   <h4 class="panel-title">
+    <a data-toggle="collapse" href="#collapse1">ACMG key</a>
+   </h4>
+  </div>
+  <div id="collapse1" class="panel-collapse collapse">
+   <div class="panel-body">
+
+```{r acmgtab, echo=FALSE}
+acmgtab <- as.data.frame(rbind(
+                         c('pvs1','null variant in a gene where LOF is a known mechanism of disease','pvs1_caution','Is the variant in the last exon?'),
+                         c('ps1','Same amino acid change as a previously established pathogenic variant regardless of nucleotide change','ps1_caution','If ps1 = 1, shows codon change'),
+                         c('pm1','Located in a mutational hot spot and/or critical and well-established functional domain without benign variation','pm1_caution','Always empty'),
+                         c('pm2','Absent from controls (or at extremely low frequency if recessive)','pm2_caution','Always empty'),
+                         c('pm4','Protein length changes as a result of in-frame deletions/insertions in a nonrepeat region or stop-loss variants','pm4_caution','Always empty'),
+                         c('pm5','Novel missense change at an amino acid residue where a different missense change determined to be pathogenic has been seen before','pm5_caution','If pm5 = 1, shows known allele change'),
+                         c('pp2','Missense variant in a gene that has a low rate of benign missense variation and in which missense variants are a common mechanism of disease','pp2_caution','Shows connection errors if any'),
+                         c('pp3','Multiple lines of computational evidence support a deleterious effect on the gene or gene product','pp3_caution','Shows number of computational tools (n=3) displaying significant scores')
+                         ))
+kable(acmgtab, "html", table.attr = 'class="table table-bordered acmgtable"', col.names = NULL)
+```
+
+   </div>
+  </div>
+ </div>
+</div>
+
 ```{r, echo=FALSE,include=TRUE}
 
      df <- add_column(df , Info = "<font size=\"+2\" color=\"green\">&oplus;</font>",.before = 1)
@@ -225,11 +271,12 @@ Legend:
        pageLength=25,
            autoWidth = FALSE,
            columnDefs = list(
-                      list(visible=FALSE, targets= c(1:17)),
+                      list(visible=FALSE, targets= c(1:17,33:55)),
                       list(orderable = FALSE, className = 'details-control', targets = 0)
                   )
            ),
            callback = JS("
+           var acmg = VARRUNACMG; 
            table.column(1).nodes().to$().css({cursor: 'pointer'});
            var format = function(d) {
 var phenserlink = [];
@@ -261,7 +308,7 @@ if (d[12] != \"None\"){
     clinvarlink.push('<a target=\"_blank\" href=\"http://www.ncbi.nlm.nih.gov/clinvar/?term=' + rsids[i] + '\">' + d[12] + '</a>');
  }
 }
-              return '<h2>Consequence of variant on protein:</h2><table>' + 
+              var retstr = '<h2>Consequence of variant on protein:</h2><table>' + 
               '<tr>' + 
               '<th>Exon</th>' + 
               '<th>Codon Change</th>' + 
@@ -309,6 +356,46 @@ if (d[12] != \"None\"){
               '<td>' + d[14] +  '</td>' +
               '<td><a href=\"http://www.uniprot.org/uniprot/?query=' + d[6] +  '\" target=\"_blank\">' + d[6] + '</a></td>' +
               '</tr></table>';
+
+             if (acmg == 1){
+              retstr = retstr + '<br><hr>' + 
+              '<h2>ACMG:</h2>' +
+              '<table>' + 
+              '<tr>' + 
+              '<th>category</th>' + 
+              '<th>pvs1</th>' + 
+              '<th>pvs1_caution</th>' + 
+              '<th>ps1</th>' + 
+              '<th>ps1_caution</th>' + 
+              '<th>pm1</th>' + 
+              '<th>pm1_caution</th>' + 
+              '<th>pm2</th>' + 
+              '<th>pm2_caution</th>' + 
+              '<th>pm4</th>' + 
+              '<th>pm4_caution</th>' +
+              '<th>pp2</th>' + 
+              '<th>pp2_caution</th>' +
+              '<th>pp3</th>' + 
+              '<th>pp3_caution</th>' +
+              '</tr><tr>' + 
+              '<td>' + d[38] +  '</td>' + 
+              '<td>' + d[40] +  '</td>' + 
+              '<td>' + d[41] +  '</td>' + 
+              '<td>' + d[42] +  '</td>' + 
+              '<td>' + d[43] +  '</td>' + 
+              '<td>' + d[44] +  '</td>' + 
+              '<td>' + d[45] +  '</td>' + 
+              '<td>' + d[46] +  '</td>' + 
+              '<td>' + d[47] +  '</td>' + 
+              '<td>' + d[48] +  '</td>' + 
+              '<td>' + d[49] +  '</td>' + 
+              '<td>' + d[50] +  '</td>' + 
+              '<td>' + d[51] +  '</td>' + 
+              '<td>' + d[52] +  '</td>' + 
+              '<td>' + d[53] +  '</td>' + 
+              '</tr></table>';
+             }
+             return(retstr);
            };
            table.on('click', 'td.details-control', function() {
            var td = $(this), row = table.row(td.closest('tr'));
