@@ -112,6 +112,10 @@ def getdata(row):
         return ps1data(Index=row.Index,ps1=ps1,ps1_caution="unusable HGVSp",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
     
     ensembl_client = restClient()
+
+    with open('acmg.log','a') as lf:
+        lf.write("\tgetting {}\n".format(row.vep_hgvsc))
+
     #print("{}".format(row.vep_hgvsc))
     url = 'https://grch37.rest.ensembl.org/vep/human/hgvs/'+row.vep_hgvsc
     # return type is JSON so bring the data back to an associative array
@@ -301,6 +305,10 @@ def doacmg(df,db_file):
     :param db_file: sqlite database containing gene:impact:disease data
     :return: pandas data frame
     """
+
+    with open('acmg.log','w+') as lf:
+        lf.write('starting acmg')
+
     # add an acmg column to store the final acmg value
     df["acmg"] = ""
 
@@ -314,10 +322,15 @@ def doacmg(df,db_file):
         df[col] = 0
         df[col+"_caution"] = ""
 
+    with open('acmg.log','a') as lf:
+        lf.write('getting gene data\n')
+
     conn = create_connection(db_file)
     gene_data = get_genes(conn)
 
-    print("got gene data",flush=True)
+    with open('acmg.log','a') as lf:
+        lf.write('got gene data\ngetting pvs1 data\n')
+    #print("got gene data",flush=True)
 
 ##########
 # pvs1
@@ -346,7 +359,9 @@ def doacmg(df,db_file):
         df.at[row.Index, 'pvs1'] = pvs1
         df.at[row.Index, 'pvs1_caution'] = pvs1_caution
 
-    print("pvs1 set",flush=True)
+    with open('acmg.log','a') as lf:
+        lf.write('got pvs1 data\ngetting ps1 data')
+    #print("pvs1 set",flush=True)
 
 ##########
 # ps1
@@ -367,6 +382,9 @@ def doacmg(df,db_file):
         df.at[row.Index, 'ps1_caution'] = row.ps1_caution
         df.at[row.Index, 'pm5_caution'] = row.pm5_caution
         df.at[row.Index, 'domains'] = ",".join([str(x) for x in row.domains])
+
+    with open('acmg.log','a') as lf:
+        lf.write('got ps1 data\ngetting pm1, pm2, pm4 data')
 
 ##########
 # pm1, pm2, pm4
@@ -390,7 +408,10 @@ def doacmg(df,db_file):
         df.at[row.Index, 'pm4'] = pm4
         df.at[row.Index, 'pm4_caution'] = pm4_caution
 
-    print("got pm1,2,4",flush=True)
+    with open('acmg.log','a') as lf:
+        lf.write('got pm1, pm2, pm4 data\ngetting pp2, pp3 data')
+
+    #print("got pm1,2,4",flush=True)
 
 ##########
 # pp2, pp3
@@ -411,7 +432,10 @@ def doacmg(df,db_file):
         df.at[row.Index, 'pp3'] = row.pp3
         df.at[row.Index, 'pp3_caution'] = row.pp3_caution
 
-    print("got pp2,3",flush=True)
+    with open('acmg.log','a') as lf:
+        lf.write('got pp2, pp3 data\nassigning acmg data')
+
+    #print("got pp2,3",flush=True)
 
 ##########
 # assign acmg
@@ -420,6 +444,9 @@ def doacmg(df,db_file):
     for row in df.itertuples(index=True):
         acmg = assignACMG(row)
         df.at[row.Index, 'acmg'] = acmg
+
+    with open('acmg.log','a') as lf:
+        lf.write('Done!')
 
 ##########
 # output
@@ -439,7 +466,7 @@ def main(argv):
     rawdatafile = ''
     db_file = ''
     try:
-        opts, args = getopt.getopt(argv,"hi:o:",["snpdata=","gddb="])
+        opts, args = getopt.getopt(argv,"hs:g:",["snpdata=","gddb="])
     except getopt.GetoptError:
         print('acmg.py -s <snpdata> -g <genediseasedb>')
         sys.exit(2)
@@ -452,8 +479,8 @@ def main(argv):
         elif opt in ("-g", "--gddb"):
             db_file = arg
 
-    if ((rawdatafile == "") | ()):
-        print("You must provide both an input file and a dabase file\nacmg.py -s <inputfile> -g <genediseasedb>")
+    if ((rawdatafile == "") | (db_file == "")):
+        print("You must provide both an input file and a database file\nacmg.py -s <inputfile> -g <genediseasedb>")
         sys.exit()
     else:
         df1 = pd.read_csv(rawdatafile, sep='\t')

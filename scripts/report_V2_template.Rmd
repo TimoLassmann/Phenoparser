@@ -49,7 +49,7 @@ geminibin=paste(Sys.getenv("SNGGEMINIBIN"),"gemini",sep="/")
 try(system2(geminibin,args=" query --header -q 'select t1.chrom, t1.start, t1.end, t1.gene, t1.impact, t1.impact_severity,
               t1.cadd_scaled,t1.polyphen_score,t1.sift_score, t1.clinvar_sig,t1.max_aaf_all,t1.sub_type,t1.num_het, t1.num_hom_alt,
               t1.exon, t1.codon_change, t1.aa_change, t1.aa_length, t1.rs_ids, t1.transcript, t1.biotype, t1.vep_hgvsc, t1.vep_hgvsp,
-              t1.clinvar_causal_allele, t1.clinvar_disease_name, t1.pfam_domain, t1.is_conserved,
+              t1.clinvar_disease_name, t1.pfam_domain, t1.is_conserved,
               gts.VARPATIENT_ID, 
               gt_depths.VARPATIENT_ID,
               gt_quals.VARPATIENT_ID,

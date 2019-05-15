@@ -19,6 +19,8 @@ class restClient(object):
         self.reqs_per_sec = reqs_per_sec
         self.req_count = 0
         self.last_req = 0
+        self.retry = 0
+        self.retrymax = 3
 
     def perform_rest_action(self, url, params=None, resource='ensembl'):
         
@@ -37,23 +39,35 @@ class restClient(object):
             r = requests.get(url, data=params, verify=True)
         else:
             r = requests.post(url, data=params, verify=True)
+
+        self.retry = self.retry + 1
             
         if r.ok:
             data = json.loads(r.text)
         else:
+            with open('acmg.log','a') as lf:
+                lf.write('unsuccessful request {}'.format(r.status_code))
+
             # check if we are being rate limited by the server
             if r.status_code == 429:
-                print("rate limited")
                 if 'Retry-After' in r.headers:
                     retry = r.headers['Retry-After']
-                    print("sleeping for {}".format(retry))
+                    print("rate limited, sleeping for {}".format(retry))
                     time.sleep(float(retry))
-                    print("retrying")
                     data = self.perform_rest_action(url=url, params=params, resource=resource)                    
                 else:
-                    data = json.loads( json.dumps({'error':'{}'.format(r.status_code)}) )
+                    data = json.loads( json.dumps({'reason':'no Retry-After {}'.format(url),'error':'{}'.format(r.status_code)}) )
+            elif r.status_code == 400:
+                dataerr = json.loads(r.text)
+                if "error" in dataerr:
+                    data = json.loads( json.dumps({'reason':dataerr["error"],'error':'{}'.format(r.status_code)}) )
+                else:
+                    if self.retry <= self.retrymax:
+                        data = self.perform_rest_action(url=url, params=params, resource=resource)
+                    else:
+                        data = json.loads( json.dumps({'reason':'too many retries {}'.format(url),'error':'{}'.format(r.status_code)}) )
             else:
-                data = json.loads( json.dumps({'error':'{}'.format(r.status_code)}) )
+                data = json.loads( json.dumps({'reason':'unknown','error':'{}'.format(r.status_code)}) )
 
         return data
 

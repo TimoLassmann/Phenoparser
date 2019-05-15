@@ -91,8 +91,8 @@ def getginfo(geneList,omim_key):
     return g_information
 
 if __name__ == '__main__':
-    gene_db = "GATK.db"
-    impact_disease_db = "GATK_id.db"
+    gene_db = "Torrent.db"
+    impact_disease_db = "acmg_id.db"
     omim_key = "Wqy5lssmS7uWGdpyy8H9zw"
     geneList = []
      
@@ -116,9 +116,9 @@ if __name__ == '__main__':
     #g_information = getginfo(geneList,omim_key)
     g_information = getginfoasync(geneList,omim_key)
     # pickle it
-    filename = '/home/richard/pipeline/scripts/Phenoparser/scripts/g_information.pickle'
-    with open(filename, 'wb') as f:
-            dill.dump(g_information, f)
+    #filename = '/home/richard/pipeline/scripts/Phenoparser/scripts/g_information.pickle'
+    #with open(filename, 'wb') as f:
+    #        dill.dump(g_information, f)
     print("collected information for {} genes".format(len(g_information)),flush=True)
 
     # load the data
