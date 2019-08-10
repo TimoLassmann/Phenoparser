@@ -45,15 +45,17 @@ class restClient(object):
         if r.ok:
             data = json.loads(r.text)
         else:
-            with open('acmg.log','a') as lf:
-                lf.write('unsuccessful request {}'.format(r.status_code))
-
             # check if we are being rate limited by the server
             if r.status_code == 429:
+                with open('acmg.log','a') as lf:
+                    lf.write('\t\trate limited\n')
                 if 'Retry-After' in r.headers:
                     retry = r.headers['Retry-After']
-                    print("rate limited, sleeping for {}".format(retry))
+                    with open('acmg.log','a') as lf:
+                        lf.write('\t\tsleeping for {}\n'.format(retry))
                     time.sleep(float(retry))
+                    with open('acmg.log','a') as lf:
+                        lf.write('\t\tretrying\n')
                     data = self.perform_rest_action(url=url, params=params, resource=resource)                    
                 else:
                     data = json.loads( json.dumps({'reason':'no Retry-After {}'.format(url),'error':'{}'.format(r.status_code)}) )
