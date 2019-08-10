@@ -7,7 +7,7 @@ import requests.exceptions
 import sys
 import json
 import pandas as pd
-import multiprocessing
+import multiprocessing as mp
 import collections
 import math
 import re
@@ -15,7 +15,7 @@ import pickle
 import dill
 import numpy as np
 import sqlite3
-from joblib import Parallel, delayed
+#from joblib import Parallel, delayed
 from collections import defaultdict
 from nested_dict import nested_dict
 from pybiomart import Server
@@ -31,7 +31,6 @@ domain_sources = ['TIGRFAM_domain','SMART_domains','PROSITE_profiles','Prints_do
 ps1data = collections.namedtuple('ps1data', 'Index ps1 ps1_caution pm5 pm5_caution domains')
 ppdata = collections.namedtuple('ppdata', 'Index pp2 pp2_caution pp3 pp3_caution')
 
-regex = re.compile("\.\d+:[nc].+", re.IGNORECASE)
 ppsift_min = 0.7
 cadd_min = 15
 consens_min = 2
@@ -87,7 +86,8 @@ def get_genes(conn):
     allrows_dict = allrows.to_dict()        
     return allrows_dict
 
-def getdata(row):    
+#def getdata(row):    
+def getdata(Index,vep_hgvsc,vep_hgvsp,aa_change,codon_change):    
     """ get the ps1 data
     :param row: tuple representing a row of a file
     :return: ps1data namedtuple
@@ -102,22 +102,30 @@ def getdata(row):
     domains = []
     domains_src = []
 
-    if isinstance(row.vep_hgvsc, float):
-        return ps1data(Index=row.Index,ps1=ps1,ps1_caution="unusable HGVSc",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
-    if isinstance(row.vep_hgvsp, float):
-        return ps1data(Index=row.Index,ps1=ps1,ps1_caution="unusable HGVSp",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
-    if (row.vep_hgvsc == ""):
-        return ps1data(Index=row.Index,ps1=ps1,ps1_caution="unusable HGVSc",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
-    if (row.vep_hgvsp == ""):
-        return ps1data(Index=row.Index,ps1=ps1,ps1_caution="unusable HGVSp",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
-    
+    #if isinstance(row.vep_hgvsc, float):
+    #    return ps1data(Index=row.Index,ps1=ps1,ps1_caution="unusable HGVSc",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
+    #if isinstance(row.vep_hgvsp, float):
+    #    return ps1data(Index=row.Index,ps1=ps1,ps1_caution="unusable HGVSp",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
+    #if (row.vep_hgvsc == ""):
+    #    return ps1data(Index=row.Index,ps1=ps1,ps1_caution="unusable HGVSc",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
+    #if (row.vep_hgvsp == ""):
+    #    return ps1data(Index=row.Index,ps1=ps1,ps1_caution="unusable HGVSp",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
+    if isinstance(vep_hgvsc, float):
+        return ps1data(Index=Index,ps1=ps1,ps1_caution="unusable HGVSc",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
+    if isinstance(vep_hgvsp, float):
+        return ps1data(Index=Index,ps1=ps1,ps1_caution="unusable HGVSp",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
+    if (vep_hgvsc == ""):
+        return ps1data(Index=Index,ps1=ps1,ps1_caution="unusable HGVSc",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
+    if (vep_hgvsp == ""):
+        return ps1data(Index=Index,ps1=ps1,ps1_caution="unusable HGVSp",pm5=pm5,pm5_caution=pm5_caution,domains=list(set(domains)))
+
     ensembl_client = restClient()
 
     with open('acmg.log','a') as lf:
-        lf.write("\tgetting {}\n".format(row.vep_hgvsc))
+        lf.write("\tgetting {}\n".format(vep_hgvsc))
 
     #print("{}".format(row.vep_hgvsc))
-    url = 'https://grch37.rest.ensembl.org/vep/human/hgvs/'+row.vep_hgvsc
+    url = 'https://grch37.rest.ensembl.org/vep/human/hgvs/'+vep_hgvsc
     # return type is JSON so bring the data back to an associative array
     json_ensembl = ensembl_client.perform_rest_action(
             url=url,
@@ -125,9 +133,11 @@ def getdata(row):
             resource='ensembl')
 
     if "error" in json_ensembl:
-        return ps1data(Index=row.Index,ps1=ps1,pm5=pm5,pm5_caution=pm5_caution,ps1_caution="ensembl failed with error code {} for {}".format(json_ensembl["error"],row.vep_hgvsc),domains=list(set(domains)))
+        #return ps1data(Index=row.Index,ps1=ps1,pm5=pm5,pm5_caution=pm5_caution,ps1_caution="ensembl failed with error code {} for {}".format(json_ensembl["error"],row.vep_hgvsc),domains=list(set(domains)))
+        return ps1data(Index=Index,ps1=ps1,pm5=pm5,pm5_caution=pm5_caution,ps1_caution="ensembl failed with error code {} for {}".format(json_ensembl["error"],vep_hgvsc),domains=list(set(domains)))
     else:
-        trim_hgvsp = regex.sub("", row.vep_hgvsp)
+        #trim_hgvsp = regex.sub("", row.vep_hgvsp)
+        trim_hgvsp = regex.sub("", vep_hgvsp)
         trim_hgvsp = regex2.sub("",trim_hgvsp)
         # this goes through each object in the json
         # there may only be one
@@ -142,27 +152,74 @@ def getdata(row):
                                 domains.append(dom["name"])
 
             try:
-                results1 = dataset_snp.query(
-                        attributes=['clinical_significance', 'allele', 'ensembl_peptide_allele'],
-                        filters={'chr_name': data['seq_region_name'],
-                                 'start' : data['start'],
-                                 'end' : data['end']},
-                        use_attr_names = True)
+                with open('acmg.log','a') as lf:
+                    #lf.write("\t\tgetting ensmart SNP data for {}\n".format(row.vep_hgvsc))
+                    lf.write("\t\tgetting ensmart SNP data for {}\n".format(vep_hgvsc))
 
-                results = results1.replace(np.nan, '', regex=True)
-                
-                for res_row in results.itertuples():
-                    # don't care about blank aa_changes in either 
-                    if((res_row.ensembl_peptide_allele == "") | (row.aa_change == "")):
-                        continue
-                    
-                    if ("pathogenic" in res_row.clinical_significance.split(',')):
-                        if res_row.ensembl_peptide_allele == row.aa_change:
+                region_url = 'https://grch37.rest.ensembl.org/overlap/region/human/'+str(data['seq_region_name'])+':'+str(data['start'])+'-'+str(data['end'])
+                # return type is JSON so bring the data back to an associative array
+                region_json_ensembl = ensembl_client.perform_rest_action(
+                        url=region_url,
+                        params={'content-type':'application/json','feature':'variation'},
+                        resource='ensembl')
+
+                #region_results = pd.read_json(json.dumps(region_json_ensembl))
+                #for res_row in region_results.itertuples():
+                for region_data in region_json_ensembl:
+                    snp_id = region_data["id"] if "id" in region_data else ""
+                    snp_clinsig = region_data["clinical_significance"] if "clinical_significance" in region_data else []
+                    snp_alleles = region_data["alleles"] if "alleles" in region_data else []
+                    snp_aa = []
+                    if re.search('^rs', snp_id):
+                        snp_url = 'https://grch37.rest.ensembl.org/vep/human/id/'+snp_id
+                        # return type is JSON so bring the data back to an associative array
+                        snp_json_ensembl = ensembl_client.perform_rest_action(
+                                url=snp_url,
+                                params={'content-type':'application/json'},
+                                resource='ensembl')
+
+                        for snp_data in snp_json_ensembl:
+                            if "transcript_consequences" in snp_data:
+                                for snp_tran_con in snp_data["transcript_consequences"]:
+                                    if "amino_acids" in snp_tran_con:
+                                        if snp_tran_con["amino_acids"] not in snp_aa:
+                                            snp_aa.append(snp_tran_con["amino_acids"])
+
+                    if ("pathogenic" in snp_clinsig):
+                        #if row.aa_change in snp_aa:
+                        if aa_change in snp_aa:
                             ps1 = 1
-                            ps1_caution += res_row.allele + " " + row.codon_change
+                            #ps1_caution += ",".join(snp_alleles) + " " + row.codon_change
+                            ps1_caution += ",".join(snp_alleles) + " " + codon_change
                         else:
                             pm5 = 1
-                            pm5_caution += res_row.ensembl_peptide_allele
+                            pm5_caution += ",".join(snp_aa)
+
+#                results1 = dataset_snp.query(
+#                        attributes=['clinical_significance', 'allele', 'ensembl_peptide_allele'],
+#                        filters={'chr_name': data['seq_region_name'],
+#                                 'start' : data['start'],
+#                                 'end' : data['end']},
+#                        use_attr_names = True)
+#
+#                results = results1.replace(np.nan, '', regex=True)
+#                
+#                for res_row in results.itertuples():
+#                    # don't care about blank aa_changes in either 
+#                    if((res_row.ensembl_peptide_allele == "") | (row.aa_change == "")):
+#                        continue
+#                    
+#                    if ("pathogenic" in res_row.clinical_significance.split(',')):
+#                        if res_row.ensembl_peptide_allele == row.aa_change:
+#                            ps1 = 1
+#                            ps1_caution += res_row.allele + " " + row.codon_change
+#                        else:
+#                            pm5 = 1
+#                            pm5_caution += res_row.ensembl_peptide_allele
+
+                with open('acmg.log','a') as lf:
+                    #lf.write("\t\tgot ensmart SNP data for {}\n".format(row.vep_hgvsc))
+                    lf.write("\t\tgot ensmart SNP data for {}\n".format(vep_hgvsc))
 
             except (requests.exceptions.HTTPError, requests.exceptions.ConnectionError, requests.exceptions.Timeout, requests.exceptions.ConnectTimeout) as e:
                 pm5 = 1
@@ -171,9 +228,11 @@ def getdata(row):
                 else:
                     pm5_caution += e.response.reason
              
-    return ps1data(Index=row.Index,ps1=ps1,pm5=pm5,pm5_caution=pm5_caution,ps1_caution=ps1_caution,domains=list(set(domains)))
+    #return ps1data(Index=row.Index,ps1=ps1,pm5=pm5,pm5_caution=pm5_caution,ps1_caution=ps1_caution,domains=list(set(domains)))
+    return ps1data(Index=Index,ps1=ps1,pm5=pm5,pm5_caution=pm5_caution,ps1_caution=ps1_caution,domains=list(set(domains)))
 
-def getppdata(row):
+#def getppdata(row):
+def getppdata(Index,vep_hgvsc,gene,polyphen_score,sift_score,cadd_scaled):
     """ get the pp data
     :param row: tuple representing a row of a file
     :return: ppdata namedtuple
@@ -183,10 +242,13 @@ def getppdata(row):
     pp3 = 0
     pp3_caution = ""
     trimhgvsc = ""
+    regex = re.compile("\.\d+:[nc].+", re.IGNORECASE)
     
     # assess pp2 first
-    if (not isinstance(row.vep_hgvsc, float)) & (row.vep_hgvsc != ""):
-        trimhgvsc = regex.sub("",row.vep_hgvsc)
+    #if (not isinstance(row.vep_hgvsc, float)) & (row.vep_hgvsc != ""):
+    if (not isinstance(vep_hgvsc, float)) & (vep_hgvsc != ""):
+        #trimhgvsc = regex.sub("",row.vep_hgvsc)
+        trimhgvsc = regex.sub("",vep_hgvsc)
 
         print("{}".format(trimhgvsc))
 
@@ -202,8 +264,10 @@ def getppdata(row):
             bcount = sigcon[(sigcon.clinical_significance == "benign") | (sigcon.clinical_significance == "likely_benign")]
             bperc = 0 if len(sigcon) == 0 else len(bcount.index) / len(sigcon)
             
-            if (row.gene in gene_data):
-                if ("missense_variant" in gene_data[row.gene]['impacts']):
+            #if (row.gene in gene_data):
+            if (gene in gene_data):
+                #if ("missense_variant" in gene_data[row.gene]['impacts']):
+                if ("missense_variant" in gene_data[gene]['impacts']):
                     if (bperc < 0.4):
                         pp2 = 1
 
@@ -217,21 +281,31 @@ def getppdata(row):
     # now pp3
     consens = 0;
     
-    if (row.polyphen_score != "None"):
-        if (float(row.polyphen_score) > ppsift_min):
+#    if (row.polyphen_score != "None"):
+#        if (float(row.polyphen_score) > ppsift_min):
+#            consens += 1
+#    if (row.sift_score != "None"):
+#        if (1 - float(row.sift_score) > ppsift_min):
+#            consens += 1
+#    if (row.cadd_scaled != "None"):
+#        if (float(row.cadd_scaled) > cadd_min):
+#            consens += 1
+    if (polyphen_score != "None"):
+        if (float(polyphen_score) > ppsift_min):
             consens += 1
-    if (row.sift_score != "None"):
-        if (1 - float(row.sift_score) > ppsift_min):
+    if (sift_score != "None"):
+        if (1 - float(sift_score) > ppsift_min):
             consens += 1
-    if (row.cadd_scaled != "None"):
-        if (float(row.cadd_scaled) > cadd_min):
+    if (cadd_scaled != "None"):
+        if (float(cadd_scaled) > cadd_min):
             consens += 1
     
     if (consens >= consens_min):
         pp3 = 1
         pp3_caution = consens
     
-    return ppdata(Index=row.Index,pp2=pp2,pp3=pp3,pp2_caution=pp2_caution,pp3_caution=pp3_caution)
+    #return ppdata(Index=row.Index,pp2=pp2,pp3=pp3,pp2_caution=pp2_caution,pp3_caution=pp3_caution)
+    return ppdata(Index=Index,pp2=pp2,pp3=pp3,pp2_caution=pp2_caution,pp3_caution=pp3_caution)
 
 
 def assignACMG(row):
@@ -307,7 +381,7 @@ def doacmg(df,db_file):
     """
 
     with open('acmg.log','w+') as lf:
-        lf.write('starting acmg')
+        lf.write('starting acmg\n')
 
     # add an acmg column to store the final acmg value
     df["acmg"] = ""
@@ -367,7 +441,13 @@ def doacmg(df,db_file):
 # ps1
 ##########
         
-    ps1_information = Parallel(n_jobs=20)(delayed(getdata)(row) for row in df.itertuples(index=True))
+    #ps1_information = Parallel(n_jobs=20)(delayed(getdata)(row) for row in df.itertuples(index=True))
+    pool = mp.Pool(20)
+    #ps1_information = Parallel(n_jobs=20)(delayed(getdata)(row) for row in df.itertuples(index=True))
+    #ps1_information = pool.starmap_async(getdata, [(row) for i, row in enumerate(df.itertuples(index=True))]).get()
+    ps1_information = pool.starmap_async(getdata, [(row.Index,row.vep_hgvsc,row.vep_hgvsp,row.aa_change,row.codon_change) for i, row in enumerate(df.itertuples(index=True))]).get()
+    pool.close()
+
     # pickle
     #filename = '/Users/rfrancis_adm/Documents/GeneticsHealth/Timo/Python/acmg-guidelines/acmg_final/ps1_information.pickle'
     #filename = '/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/ps1_information.pickle'
@@ -417,7 +497,10 @@ def doacmg(df,db_file):
 # pp2, pp3
 ##########
 
-    pp_information = Parallel(n_jobs=20)(delayed(getppdata)(row) for row in df.itertuples(index=True))
+    #pp_information = Parallel(n_jobs=20)(delayed(getppdata)(row) for row in df.itertuples(index=True))
+    pool = mp.Pool(20)
+    pp_information = pool.starmap_async(getppdata, [(row.Index,row.vep_hgvsc,row.gene,row.polyphen_score,row.sift_score,row.cadd_scaled) for i, row in enumerate(df.itertuples(index=True))]).get()
+    pool.close()
     # pickle
     #filename = '/Users/rfrancis_adm/Documents/GeneticsHealth/Timo/Python/acmg-guidelines/acmg_final/pp_information.pickle'
     #filename = '/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/pp_information.pickle'
@@ -433,7 +516,7 @@ def doacmg(df,db_file):
         df.at[row.Index, 'pp3_caution'] = row.pp3_caution
 
     with open('acmg.log','a') as lf:
-        lf.write('got pp2, pp3 data\nassigning acmg data')
+        lf.write('got pp2, pp3 data\nassigning acmg data\n')
 
     #print("got pp2,3",flush=True)
 
