@@ -1,0 +1,437 @@
+
+---
+title: VARPATIENT_ID
+output:
+    html_document:
+    keep_md: true
+---
+
+# Patient report: VARPATIENT_ID
+
+Sequencing platform: VARGEMINI_DATABASEPATH
+
+<style>
+     .main-container { width: 1600px; max-width:1600px;}
+</style>
+
+```{r setup, warning = FALSE, message = FALSE, include=FALSE}
+# Load the packages into R
+library(dplyr)
+library(stringr)
+library(knitr)
+library(DT)
+library(tidyverse)
+library(kableExtra)
+library(ontologyIndex)
+library(reticulate)
+use_python("VARSNGPY")
+```
+
+```{r loadOBO, warning = FALSE, message = FALSE, include=FALSE}
+ontology <- get_ontology("VARPATHTOHPOOBO")
+```
+## Extract variants and annotation from gemini
+
+In this step the following thresholds are used:
+
+1. Maximum allele frequency in any population: 0.01
+2. Minimum CADD score 15 OR impact severity HIGH
+
+```{r Gemini, include=FALSE}
+
+geminibin=paste(Sys.getenv("SNGGEMINIBIN"),"gemini",sep="/")
+try(system2(geminibin,args=" query --header -q 'select t1.chrom, t1.start, t1.end, t1.gene, t1.impact, t1.impact_severity,
+              t1.cadd_scaled,t1.polyphen_score,t1.sift_score, t1.clinvar_sig,t1.max_aaf_all,t1.sub_type,t1.num_het, t1.num_hom_alt,
+              t1.exon, t1.codon_change, t1.aa_change, t1.aa_length, t1.rs_ids, t1.transcript, t1.biotype, t1.vep_hgvsc, t1.vep_hgvsp,
+              t1.clinvar_disease_name, t1.pfam_domain, t1.is_conserved,
+              gts.VARPATIENT_ID, 
+              gt_depths.VARPATIENT_ID,
+              gt_quals.VARPATIENT_ID,
+              gt_ref_depths.VARPATIENT_ID,
+              gt_alt_depths.VARPATIENT_ID, 
+              t2.lof_gcount
+              from variants as t1 left join
+               (select v1.gene, v1.impact_severity, count(v1.variant_id) as lof_gcount
+               from variants as v1 where v1.impact_severity = \"HIGH\" group by v1.gene,v1.impact_severity) as t2
+                on t2.gene = t1.gene
+               where
+              t1.max_aaf_all < 0.01 AND
+              t1.impact_so != \"synonymous_variant\" AND
+              t1.impact_so != \"intron_variant\" AND
+              (t1.cadd_scaled >= 15 OR t1.impact_severity == \"HIGH\")
+               ' VARGEMINI_DATABASEPATH --gt-filter \"gt_depths.VARPATIENT_ID > 0 and gt_types.VARPATIENT_ID != HOM_REF\" > raw_var_table_VARPATIENT_ID.tsv", stderr="R_geministderr.txt"))
+
+```
+
+
+```{r postGemini, include=FALSE}
+
+df = read_tsv("raw_var_table_VARPATIENT_ID.tsv")
+df = df %>%
+  unite(pos, chrom, start, end) %>%
+  rename(Severity = impact_severity) %>%
+  rename(GTS = "gts.VARPATIENT_ID") %>%
+  rename(Depth = "gt_depths.VARPATIENT_ID") %>%
+  rename(CallQ = "gt_quals.VARPATIENT_ID") %>%
+  rename(RefD = "gt_ref_depths.VARPATIENT_ID") %>%
+  rename(AltD = "gt_alt_depths.VARPATIENT_ID") %>%
+  mutate(max_aaf_all = sprintf("%0.1e", max_aaf_all)) %>%
+  mutate(CallQ = sprintf("%0.0f",CallQ))
+
+df$lof_gcount = gsub("None",0, df$lof_gcount)
+df$lof_gcount = as.numeric(df$lof_gcount)
+
+df$cadd_scaled = gsub("None",15.555, df$cadd_scaled)
+df$cadd_scaled = as.numeric(df$cadd_scaled)
+
+df$CallQ = as.numeric(df$CallQ)
+
+```
+
+```{r Export Phenotype information,echo=FALSE, include=FALSE}
+
+phenobin = paste(Sys.getenv("SNGPPBIN"),"phenoparser",sep="/");
+try(system2(phenobin,args=" panel  --id VARPATIENT_ID --db VARPHENO_DATABASEPATH --out VARPATIENT_ID", stderr="R_phenoparsererr.txt"));
+
+```
+
+## HPO terms and/or suspected diseases 
+
+The table contains all HPO and/or suspected diseases considered when ranking the variants. 
+
+```{r make term table, echo=FALSE,include=TRUE}
+
+info = file.info("VARPATIENT_ID_terms.csv")
+if(info[1,1] != 0){
+ terms = suppressMessages(read_tsv("VARPATIENT_ID_terms.csv",col_names = FALSE))
+ colnames(terms) = c("Patient ID","Term")
+ terms$Description = ontology$name[terms$Term];
+ terms <- terms %>% filter(!str_detect(Term, "PS"))  
+
+ kable(terms,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
+}
+
+```
+
+```{r Add OMIM Phenotype information to df , include=FALSE}
+
+info = file.info("VARPATIENT_ID_omim.csv")
+if(info[1,1] != 0){
+  omim = read_tsv("VARPATIENT_ID_omim.csv",col_names = FALSE)
+  omim_genes = select(omim, X4,X6,X5,X2)
+  colnames(omim_genes) = c("OMIMAPI","gene","Inheritance","PhenotypicSeries")
+  omim_genes = distinct(omim_genes, OMIMAPI, gene, Inheritance,PhenotypicSeries)
+}else{
+  omim_genes = tibble(OMIMAPI = character(), gene = character(),Inheritance = character(),PhenotypicSeries = character())
+}
+
+```
+
+
+```{r Add Phenolyzer information to df , include=FALSE}
+
+info = file.info("VARPATIENT_ID_phenolyzer.csv")
+if(info[1,1] != 0){
+  hpo = read_tsv("VARPATIENT_ID_phenolyzer.csv",col_names = FALSE)
+  hpo_genes = select(hpo, X4,X2,X5)
+  colnames(hpo_genes) = c("PhenolyzerScore","gene","evidence")
+  hpo_genes = distinct(hpo_genes, PhenolyzerScore, gene, evidence)
+
+}else{
+   hpo_genes  = tibble(PhenolyzerScore = numeric(), gene = character(), evidence = character()) 
+}
+
+```
+
+```{r joining , include=FALSE} 
+
+pheno <- omim_genes %>% full_join(hpo_genes, by = "gene")
+
+pheno <- pheno %>%
+  group_by(gene) %>%
+  dplyr::summarise(
+    OMIMAPI=paste(unique(OMIMAPI), collapse="</br>"),
+    PhenotypicSeries=paste(unique(PhenotypicSeries), collapse = "</br>"),
+    Inheritance=paste(unique(Inheritance), collapse = "</br>"),
+    PhenolyzerScore=max(PhenolyzerScore),evidence = paste(unique(evidence), collapse = "</br>")
+    ) %>%
+  arrange(desc(PhenolyzerScore)) %>%
+  mutate(
+    PhenolyzerScore = na_if(PhenolyzerScore, 0),
+    OMIMAPI = na_if(OMIMAPI, "NA")
+    )
+
+df = df %>% left_join(pheno, by = "gene")
+           
+```
+
+## Ranking of variants
+
+The table is sorted by variants in genes associated with the patient's disease
+phenotype and then by descending CADD score. In addition, all variants occuring
+in more than 5 patients are given a low priority. Variants with a call quality of less than 10 are discarded.
+
+```{r Sorting,include=FALSE}
+
+df <- df %>%
+  dplyr::filter(CallQ > 10, GTS != "./.") %>%
+  dplyr::arrange(
+    ((num_het + num_hom_alt) > 5),
+    desc(str_length(OMIMAPI) > 2),
+    desc(PhenolyzerScore),
+    desc(cadd_scaled)
+    ) %>%
+  dplyr::mutate(Rank = ifelse(nrow(.)>0, 1:nrow(.), "")) %>%
+  dplyr::select(
+    exon, codon_change, aa_change, aa_length, rs_ids, transcript, biotype, evidence, impact, polyphen_score, sift_score, clinvar_sig, max_aaf_all, sub_type, vep_hgvsc, vep_hgvsp, PhenotypicSeries, Rank, pos, GTS, gene, Severity ,cadd_scaled, PhenolyzerScore, OMIMAPI, Inheritance, CallQ, Depth, RefD, AltD, everything()
+  )
+
+```
+
+```{python acmg and write,include=FALSE}
+sys.path.append('VARSNGSCRIPTS')
+from acmg import doacmg
+runacmg = VARRUNACMG
+if (runacmg == 1):
+ r.df = doacmg(r.df,"VARDISEASE_DATABASEPATH")
+
+r.df.to_csv(path_or_buf="VARPATIENT_ID_report_V3.tsv",sep="\t",na_rep="NA",index=False)
+```
+
+## List of candidate variants 
+
+Legend: 
+
+```{r Option table,echo=FALSE, include=TRUE}
+
+     friends_data <- data_frame(
+       Column = c("Rank", "pos", "GTS", "PhenolyzerScore","OMIMAPI","CallQ","Depth", "RefD","AltD","cadd_scaled"),
+       Description = c("rank of variant after sorting the list according to the criteria above",
+                         "genomic coordinates",
+                         "genotype",
+                         "contains a score for genes returned by phenolyzer",
+                         "contain genes associated with the patients disease phenotype",
+                         "Phred scaled call quality", 
+                         "Read depth",
+                         "Depth of reference allele",
+                         "Depth of alternate allele",
+                         "Scaled CADD score - NOTE: for visualization purposes all indels are given a score of 15.555 and blue cell color."
+                   )                       
+     )
+     kable(friends_data,"html") %>% kable_styling(bootstrap_options = "striped", full_width = F,position = "left")
+```
+
+<style>
+table.acmgtable td:nth-child(1){
+    font-weight: bold;
+    }
+table.acmgtable td:nth-child(3){
+    font-weight: bold;
+    }
+</style>
+
+<div class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<h4 class="panel-title">
+<a data-toggle="collapse" href="#collapse1">ACMG key</a>
+</h4>
+</div>
+<div id="collapse1" class="panel-collapse collapse">
+<div class="panel-body">
+
+```{r acmgtab, echo=FALSE}
+acmgtab <- as.data.frame(rbind(
+                         c('pvs1','null variant in a gene where LOF is a known mechanism of disease','pvs1_caution','Is the variant in the last exon?'),
+                         c('ps1','Same amino acid change as a previously established pathogenic variant regardless of nucleotide change','ps1_caution','If ps1 = 1, shows codon change'),
+                         c('pm1','Located in a mutational hot spot and/or critical and well-established functional domain without benign variation','pm1_caution','Always empty'),
+                         c('pm2','Absent from controls (or at extremely low frequency if recessive)','pm2_caution','Always empty'),
+                         c('pm4','Protein length changes as a result of in-frame deletions/insertions in a nonrepeat region or stop-loss variants','pm4_caution','Always empty'),
+                         c('pm5','Novel missense change at an amino acid residue where a different missense change determined to be pathogenic has been seen before','pm5_caution','If pm5 = 1, shows known allele change'),
+                         c('pp2','Missense variant in a gene that has a low rate of benign missense variation and in which missense variants are a common mechanism of disease','pp2_caution','Shows connection errors if any'),
+                         c('pp3','Multiple lines of computational evidence support a deleterious effect on the gene or gene product','pp3_caution','Shows number of computational tools (n=3) displaying significant scores')
+                         ))
+kable(acmgtab, "html", table.attr = 'class="table table-bordered acmgtable"', col.names = NULL)
+```
+
+</div>
+</div>
+</div>
+</div>
+
+```{r, echo=FALSE,include=TRUE}
+
+acmg = VARRUNACMG
+dispcols = c(1:17,33:54)
+if (acmg == 1){
+  dispcols = c(1:17,33:35,38:54)
+}
+df <- add_column(df , Info = "<font size=\"+2\" color=\"green\">&oplus;</font>",.before = 1)
+
+datatable(df,rownames=FALSE,filter = 'top',escape = FALSE, 
+options = list(
+  dom = 'Blfrtip',
+  pageLength=25,
+  autoWidth = FALSE,
+  columnDefs = list(
+    list(visible=FALSE, targets= dispcols),
+    list(orderable = FALSE, className = 'details-control', targets = 0)
+    )
+  ),
+callback = JS("
+var acmg = VARRUNACMG; 
+table.column(1).nodes().to$().css({cursor: 'pointer'});
+var format = function(d) {
+var phenserlink = [];
+if (d[17] !== null){
+ var phenser = d[17].split(\"</br>\");
+ for (var i = 0; i < phenser.length; i++) {
+  if (phenser[i] == \"NA\"){
+   phenserlink.push(phenser[i]);
+  }
+  else {
+   var regex = /^PS\\d+/;
+   var suffix = regex.test(phenser[i]) ? 'phenotypicSeries/'+phenser[i] : 'search/?search=&quot;'+phenser[i]+'&quot;';
+   phenserlink.push('<a target=\"_blank\" href=\"https://www.omim.org/' + suffix + '\">' + phenser[i] + '</a>');
+  }
+ }
+}
+var rsidlink = [];
+if (d[5] != \"None\"){
+ var rsids = d[5].split(\"</br>\");
+ for (var i = 0; i < rsids.length; i++) {
+  rsid = rsids[i].replace(\"rs\",\"\");
+  rsidlink.push('<a target=\"_blank\" href=\"https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=' + rsid + '\">' + rsids[i] + '</a>');
+ }
+}
+var clinvarlink = [];
+if (d[12] != \"None\"){
+ var rsids = d[5].split(\"</br>\");
+ for (var i = 0; i < rsids.length; i++) {
+  clinvarlink.push('<a target=\"_blank\" href=\"http://www.ncbi.nlm.nih.gov/clinvar/?term=' + rsids[i] + '\">' + d[12] + '</a>');
+ }
+}
+var retstr = '<h3>Consequence of variant on protein:</h3><table>' + 
+  '<tr>' + 
+  '<th>Exon</th>' + 
+  '<th>Codon Change</th>' + 
+  '<th>Amino Acid Change</th>' + 
+  '<th>Position In Protein</th>' +
+  '<th>rsIDs</th>' +
+  '<th>vep_hgvsc</th>' +
+  '<th>vep_hgvsp</th>' +
+  '</tr><tr>' + 
+  '<td>' + d[1] +  '</td>' + 
+  '<td>' + d[2] +  '</td>' + 
+  '<td>' + d[3] +  '</td>' + 
+  '<td>' + d[4] +  '</td>' + 
+  '<td>' + rsidlink.join(\"</br>\") +  '</td>' + 
+  '<td>' + d[15] +  '</td>' +
+  '<td>' + d[16] +  '</td>' +
+  '</tr></table><hr><h3>Evidence used by phenolyzer:</h3>' + 
+  '</div>' + '<div style=\"background-color:#eee; padding: .5em;\">' +
+  d[8] + '</div><hr>' + 
+  '<h3>Evidence used by OMIM:</h3><table>' + 
+  '<tr>' + 
+  '<th>OMIM disease</th>' + 
+  '<th>Inheritance</th>' + 
+  '<th>Phenotypic series</th>' + 
+  '</tr><tr>' + 
+  '<td>' + d[25] +  '</td>' + 
+  '<td>' + d[26] +  '</td>' + 
+  '<td>' + phenserlink.join(\"</br>\") + '</td>' +  
+  '</tr></table><hr>' + 
+  '<h3>More information:</h3><table>' + 
+  '<tr>' + 
+  '<th>Impact</th>' + 
+  '<th>Polyphen_score</th>' + 
+  '<th>Sift score</th>' + 
+  '<th>Clinvar Significance</th>' +
+  '<th>Clinvar Disease</th>' +
+  '<th>Max. allele frequency in any population</th>' +
+  '<th>Sub Type</th>' +
+  '<th>transcript</th>' +
+  '</tr><tr>' + 
+  '<td>' + d[9] +  '</td>' + 
+  '<td>' + d[10] +  '</td>' + 
+  '<td>' + d[11] +  '</td>' + 
+  '<td>' + clinvarlink.join(\"</br>\") +  '</td>' +
+  '<td>' + d[33] +  '</td>' +
+  '<td>' + d[13] +  '</td>' +
+  '<td>' + d[14] +  '</td>' +
+  '<td><a href=\"http://www.uniprot.org/uniprot/?query=' + d[6] +  '\" target=\"_blank\">' + d[6] + '</a></td>' +
+  '</tr></table><br>';
+
+ if (acmg == 1){
+  retstr = '<h3>ACMG:</h3>' +
+  '<table>' + 
+  '<tr>' + 
+  '<th>category</th>' + 
+  '<th>pvs1</th>' + 
+  '<th>pvs1_caution</th>' + 
+  '<th>ps1</th>' + 
+  '<th>ps1_caution</th>' + 
+  '<th>pm1</th>' + 
+  '<th>pm1_caution</th>' + 
+  '<th>pm2</th>' + 
+  '<th>pm2_caution</th>' + 
+  '<th>pm4</th>' + 
+  '<th>pm4_caution</th>' +
+  '<th>pm5</th>' + 
+  '<th>pm5_caution</th>' +
+  '<th>pp2</th>' + 
+  '<th>pp2_caution</th>' +
+  '<th>pp3</th>' + 
+  '<th>pp3_caution</th>' +
+  '</tr><tr>' + 
+  '<td>' + d[37] +  '</td>' + 
+  '<td>' + d[39] +  '</td>' + 
+  '<td>' + d[40] +  '</td>' + 
+  '<td>' + d[41] +  '</td>' + 
+  '<td>' + d[42] +  '</td>' + 
+  '<td>' + d[43] +  '</td>' + 
+  '<td>' + d[44] +  '</td>' + 
+  '<td>' + d[45] +  '</td>' + 
+  '<td>' + d[46] +  '</td>' + 
+  '<td>' + d[47] +  '</td>' + 
+  '<td>' + d[48] +  '</td>' + 
+  '<td>' + d[49] +  '</td>' + 
+  '<td>' + d[50] +  '</td>' + 
+  '<td>' + d[51] +  '</td>' + 
+  '<td>' + d[52] +  '</td>' + 
+  '<td>' + d[53] +  '</td>' + 
+  '<td>' + d[54] +  '</td>' + 
+  '</tr></table><hr>' + retstr;
+ }
+ return(retstr);
+};
+table.on('click', 'td.details-control', function() {
+ var td = $(this), row = table.row(td.closest('tr'));
+ if (row.child.isShown()) {
+  row.child.hide();
+  td.html('<font size=\"+2\" color=\"green\">&oplus;</font>');
+ } else {
+  row.child(format(row.data())).show();
+  td.html('<font size=\"+2\" color=\"red\">&CircleMinus;</font>');
+ }
+});"
+)) %>%            formatStyle(
+'Severity',
+backgroundColor = styleEqual(c('HIGH','MED','LOW') , c( 'lightpink', 'lightgreen', 'lightblue')
+)
+) %>% formatStyle(
+'cadd_scaled',
+backgroundColor = styleInterval(c(15.554,15.556), c('white', 'lightblue', 'white')
+)
+) %>% formatStyle(
+'num_het',
+backgroundColor = styleInterval(c(4.9), c('white', 'lightpink')
+)
+) %>% formatStyle(
+'num_hom_alt',
+backgroundColor = styleInterval(c(4.9), c('white', 'lightpink')
+)
+) 
+
+```
+End.
