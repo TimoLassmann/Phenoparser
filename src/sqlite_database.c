@@ -1,11 +1,12 @@
 
+
 #include "phenoparser.h"
 
-                               
+
 char* create_query_string(char* query,int* query_len,const char * format, ...)
 {
         va_list args;
-        
+
         int n;
         int alloc_len = *query_len;
 
@@ -14,17 +15,17 @@ char* create_query_string(char* query,int* query_len,const char * format, ...)
                 MMALLOC(query,sizeof(char) * alloc_len);
                 *query_len = alloc_len;
         }
-        
-                
-        
+
+
+
         while(1) {
                 query[0] = 0;
                 va_start(args, format);
                 n = vsnprintf(query, alloc_len, format, args);
                 va_end(args);
-                
+
                 if(n > -1 && n < alloc_len){
-                    
+
                         return query;
                 }
 
@@ -43,13 +44,13 @@ ERROR:
 
 int check_if_db_exists_otherwise_create(struct parameters* param)
 {
-        char buffer[BUFFER_LEN]; 
+        char buffer[BUFFER_LEN];
         sqlite3 *sqlite_db = NULL;
-        int rc;          
+        int rc;
         ASSERT(param->local_sqlite_database_name != NULL,"No database.");
         if(!my_file_exists(param->local_sqlite_database_name)){
                 DPRINTF1("Creating sqlite database:%s\n", param->local_sqlite_database_name);
-                	
+
                 rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
                 if(rc!=SQLITE_OK ){
                         ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
@@ -77,7 +78,7 @@ int check_if_db_exists_otherwise_create(struct parameters* param)
                 }
 
                 DPRINTF2("Creating table: Phenolyzer\n");
-                snprintf(buffer,BUFFER_LEN,"CREATE TABLE phenolyzer(patient_id TEXT NOT NULL,gene TEXT NOT NULL,identifier INT,score REAL,status TEXT NOT NULL, unique (patient_id,gene));"); 
+                snprintf(buffer,BUFFER_LEN,"CREATE TABLE phenolyzer(patient_id TEXT NOT NULL,gene TEXT NOT NULL,identifier INT,score REAL,status TEXT NOT NULL, unique (patient_id,gene));");
 
                 rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
                 if( rc!=SQLITE_OK ){
@@ -85,14 +86,14 @@ int check_if_db_exists_otherwise_create(struct parameters* param)
                 }
 
                 DPRINTF2("Creating table: Phenolyzer Gene Information \n");
-                snprintf(buffer,BUFFER_LEN,"CREATE TABLE phenolyzerGeneData(patient_id TEXT NOT NULL,gene TEXT NOT NULL,gene_evidence TEXT NOT NULL, unique (patient_id,gene));"); 
+                snprintf(buffer,BUFFER_LEN,"CREATE TABLE phenolyzerGeneData(patient_id TEXT NOT NULL,gene TEXT NOT NULL,gene_evidence TEXT NOT NULL, unique (patient_id,gene));");
 
                 rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
                 if( rc!=SQLITE_OK ){
                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }
 
-                
+
                 rc = sqlite3_close(sqlite_db);
                 if( rc!=SQLITE_OK ){
                         ERROR_MSG("sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
@@ -106,12 +107,12 @@ ERROR:
                 if( rc!=SQLITE_OK ){
                         fprintf(stderr,"sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }
-        }  
+        }
         return FAIL;
 }
 
 /*
-  Some test queries 
+  Some test queries
   INSERT INTO patient VALUES ('OTTO', 'epidermolysis bullosa','');
 
   INSERT INTO diseaseMIM VALUES ('epidermolysis bullosa',603576);
@@ -137,12 +138,12 @@ ERROR:
   diseaseMIM.phenotypeDescription AS DESC,
   MIMgene.gene AS GENE
   FROM
-  patient 
-  INNER JOIN diseaseMIM ON diseaseMIM.DiseaseSearch = patient.DiseaseSearch 
-  INNER JOIN MIMgene ON MIMgene.phenotypeMimNumber = diseaseMIM.phenotypeMimNumber 
+  patient
+  INNER JOIN diseaseMIM ON diseaseMIM.DiseaseSearch = patient.DiseaseSearch
+  INNER JOIN MIMgene ON MIMgene.phenotypeMimNumber = diseaseMIM.phenotypeMimNumber
   WHERE patient_id == "dOTTO";
 
-  SELECT 
+  SELECT
   *
   FROM
   diseaseMIM
