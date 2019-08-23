@@ -205,14 +205,15 @@ There are three parameters:
 -p <"technology" like the options above>
 -d <output GEMINI database name>
 -l <log file>
+-t <threads> default 6
 ```
 
 Example usage:
 
 ```
-build_gemini_db.sh -p GATK -d GATK.db -l gatk.log 
-build_gemini_db.sh -p Life -d Life.db -l gatk.log 
-build_gemini_db.sh -p Torrent -d Torrent.db -l gatk.log
+build_gemini_db.sh -p GATK -d GATK.db -l gatk.log -t 6
+build_gemini_db.sh -p Life -d Life.db -l gatk.log -t 8
+build_gemini_db.sh -p Torrent -d Torrent.db -l gatk.log -t 10
 ```
 
 Make Omim database
