@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+
 #include <getopt.h>
 #include <stdint.h>
 #include <float.h>

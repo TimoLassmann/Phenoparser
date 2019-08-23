@@ -1,9 +1,12 @@
 
 #include "phenoparser.h"
 
+
+
 #define str(x)          # x
 #define xstr(x)         str(x)
 
+char* safe_string_paste( int n_string, ... );
 
 int query_omim_and_insert_results(struct parameters* param);
 
@@ -15,11 +18,12 @@ int get_term_list(struct parameters* param);
 
 int main (int argc, char * argv[])
 {
-        struct parameters* param = NULL;       
-        
+        struct parameters* param = NULL;
+
+
         if(argc == 1){
                 /* print help */
-                tlog.echo_build_config();
+                //tlog.echo_build_config();
                 RUN(print_global_help(argc,argv));
                 return OK;
         }
@@ -29,7 +33,7 @@ int main (int argc, char * argv[])
                 /* create output structure ...  */
                 RUN(check_if_db_exists_otherwise_create(param));
                 RUN(query_omim_and_insert_results(param));
-                
+
         }else if(strncmp(argv[1],"termlist",8) == 0){
 
                 RUNP(param = get_termlist_param(argc,argv));
@@ -43,12 +47,12 @@ int main (int argc, char * argv[])
                 RUN(check_if_db_exists_otherwise_create(param));
                 RUN(read_phenolyzer_seed_gene_list(param));
                 RUN(read_phenolyzer_merge_gene_scores(param));
-                
+
         }else if(strncmp(argv[1],"panel",5) == 0){
 
                 RUNP(param = get_panel_param(argc,argv));
                 RUN(make_table_output(param));
-                
+
         }else{
                 ERROR_MSG("Option %s not recognized.",argv[1]);
         }
@@ -56,7 +60,7 @@ int main (int argc, char * argv[])
         LOG_MSG("Done.");
         free_param(param);
         return EXIT_SUCCESS;
-ERROR:        
+ERROR:
         free_param(param);
         return EXIT_FAILURE;
 
@@ -68,11 +72,11 @@ int read_phenolyzer_seed_gene_list(struct parameters* param)
         char line[LINE_LEN];
         int line_num = 1;
         int r;
-        
+
         sqlite3 *sqlite_db = NULL;
-        int rc;   
+        int rc;
         char buffer[BUFFER_LEN*10];
-        
+
         int Rank;
         char Gene[BUFFER_LEN];
         int Id;
@@ -81,25 +85,25 @@ int read_phenolyzer_seed_gene_list(struct parameters* param)
         char* sql_query = NULL;
         int sql_len = 0;
 
-        
+
         ASSERT(param != NULL ,"No param.");
-        
+
         rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
         if(rc!=SQLITE_OK ){
                 ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
         }
-        
+
         //.merge_gene_scores
         //.seed_gene_list
-        
+
         snprintf(buffer,BUFFER_LEN*10,"%s.seed_gene_list",param->phenofile);
         if(!my_file_exists(buffer)){
                 ERROR_MSG("File: %s does not exist!",buffer);
         }
-        
+
         RUNP(f_ptr = fopen(buffer,"r"));
-        
-        // SEED LIST looks like this: 
+
+        // SEED LIST looks like this:
         //Rank	Gene	ID	Score
         // 1 FGD1	2245	1
         // 2 UBE3A	7337	0.02885
@@ -109,7 +113,7 @@ int read_phenolyzer_seed_gene_list(struct parameters* param)
         //2	ELMO1	9844	0.06035	Predicted
         //3	PIKFYVE	200576	0.05363	Predicted
         //4	FGD3	89846	0.05362	Predicted
-       
+
         line_num = 1;
         while(fgets(line, LINE_LEN, f_ptr)){
                 if(line_num> 1){
@@ -118,9 +122,9 @@ int read_phenolyzer_seed_gene_list(struct parameters* param)
                                 Status[0] = 'N';
                                 Status[1] = 'A';
                                 Status[2] = 0;
-                                
+
                         }
-                        
+
                         DPRINTF3("%s%d\t%s\t%d\t%e\t%s\n",line,Rank,Gene,Id,Score,Status);
                         if(r != 4 && r != 5 ){
                                 ERROR_MSG("Problem reading (%d): %s",r,line);
@@ -130,7 +134,7 @@ int read_phenolyzer_seed_gene_list(struct parameters* param)
                                 RUNP(sql_query = create_query_string(sql_query,&sql_len,"INSERT OR IGNORE INTO phenolyzer VALUES ('%s','%s','%d','%e','%s');",param->patient_id,Gene,Id,Score,Status ));
                                 rc = sqlite3_exec(sqlite_db, sql_query, 0, 0, 0);
                                 if( rc!=SQLITE_OK ){
-                                        LOG_MSG("try:%s",sql_query);            
+                                        LOG_MSG("try:%s",sql_query);
                                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                                 }
                         }
@@ -142,7 +146,7 @@ int read_phenolyzer_seed_gene_list(struct parameters* param)
         fclose(f_ptr);
 
         //RUN(enter_detailed_evidence_information(param));
-        
+
         rc = sqlite3_close(sqlite_db);
         if( rc!=SQLITE_OK ){
                 ERROR_MSG("sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
@@ -166,9 +170,9 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
         int line_num = 1;
 
         int new_gene = 1;
-        
+
         char buffer[BUFFER_LEN*10];
-        char append_buffer[BUFFER_LEN*10];
+        char append_buffer[BUFFER_LEN*10 + BUFFER_LEN*10];
         char gene[BUFFER_LEN];
 
         /* entries we want to capture */
@@ -179,13 +183,13 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
                 char data_base_name[BUFFER_LEN];      /* name of database - king of redundant */
                 char disease_description[BUFFER_LEN]; /* name of disease  */
                 char hpo_term[BUFFER_LEN];            /* HPO term triggering match  */
-                double score; 
-                        
+                double score;
+
         } cap;
         /* To gethyperlinks into the output datatable all we need to do us
          * insert html code into the information below and add the "escape =
          * FALSE" option to the R DT datatable call */
-        
+
         char* description = NULL;
         char* sql_query = NULL;
         int description_len;
@@ -194,12 +198,12 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
         int i;
 
         sqlite3 *sqlite_db = NULL;
-        int rc;          
+        int rc;
 
         int num_genes = 0;
 
         ASSERT(param != NULL ,"No param.");
-        
+
         //.merge_gene_scores
         //.seed_gene_list
 
@@ -207,9 +211,9 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
         if(rc!=SQLITE_OK ){
                 ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
         }
-        
+
         snprintf(buffer,BUFFER_LEN*10,"%s.merge_gene_scores",param->phenofile);
-        
+
         if(!my_file_exists(buffer)){
                 ERROR_MSG("File: %s does not exist!",buffer);
         }
@@ -217,8 +221,8 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
         MMALLOC(description,sizeof(char) * description_alloc_len);
         description_len = 0;
         //MMALLOC(sql_query_buffer,sizeof(char) *sql_query_buffer_alloc_len );
-        
-                
+
+
         RUNP(f_ptr = fopen(buffer,"r"));
         line_num = 1;
         while(fgets(line, LINE_LEN, f_ptr)){
@@ -226,7 +230,7 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
                         if(new_gene){
                                 sscanf(line,"%"xstr(BUFFER_LEN)"s\t",gene);
                                 //fprintf(stdout,"Gene: %s\n",gene);
-                                
+
                                 new_gene = 0;
                                 num_genes++;
                         }else{
@@ -235,13 +239,13 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
                                         description[description_len] = 0;
 
                                         RUNP(sql_query = create_query_string(sql_query,&sql_len,"INSERT OR IGNORE INTO phenolyzerGeneData  VALUES ('%s','%s','%s');",param->patient_id,gene,description));
-                                        
+
                                         rc = sqlite3_exec(sqlite_db, sql_query, 0, 0, 0);
                                         if( rc!=SQLITE_OK ){
-                                                LOG_MSG("try:%s",sql_query);            
+                                                LOG_MSG("try:%s",sql_query);
                                                 ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
-                                        }        	
-        
+                                        }
+
                                         //fprintf(stdout,"%s (%d)\n%s\n",gene, num_genes,description);
                                         description_len = 0;
                                 }else{
@@ -255,20 +259,47 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
                                          * character. */
                                         sscanf(line,"%"xstr(BUFFER_LEN)"[^:]:%"xstr(BUFFER_LEN)"[^ ] %"xstr(BUFFER_LEN)"[^\t]\t%"xstr(BUFFER_LEN)"[^\t]\t%"xstr(BUFFER_LEN)"[^\t]\t%lf", cap.database_type,cap.database_id,cap.data_base_name,cap.disease_description,cap.hpo_term,&cap.score);
                                         if(strncmp(cap.database_type,"OMIM",4) == 0){
+
+
                                                 snprintf(buffer,BUFFER_LEN * 10,"<a href=\"https://www.omim.org/entry/%s\">%s</a>", cap.database_id,cap.database_id);
+
+                                                /* safe_string_paste(5,"<a href=\"https://www.omim.org/entry/", */
+                                                /*                   cap.database_id, */
+                                                /*                   "\">", */
+                                                /*                   cap.database_id, */
+                                                /*                   "</a>"); */
+
+
+
                                         }else if(strncmp(cap.database_type,"ORPHANET",8) == 0){
                                                 snprintf(buffer,BUFFER_LEN * 10,"<a href=\"http://www.orpha.net/consor/cgi-bin/OC_Exp.php?Lng=GB&Expert=%s\">%s</a>", cap.database_id,cap.database_id);
+                                                /* safe_string_paste(5,"<a href=\"http://www.orpha.net/consor/cgi-bin/OC_Exp.php?Lng=GB&Expert=", */
+                                                /*                   cap.database_id, */
+                                                /*                   "\">", */
+                                                /*                   cap.database_id, */
+                                                /*                   "</a>"); */
 
                                         }else if(strncmp(cap.database_type,"umls",4) == 0){
                                                 snprintf(buffer,BUFFER_LEN * 10,"<a href=\"https://www.ncbi.nlm.nih.gov/medgen/%s\">%s</a>", cap.database_id,cap.database_id);
                                                 //          C0175695
+                                                /* safe_string_paste(5,"<a href=\"https://www.ncbi.nlm.nih.gov/medgen/", */
+                                                /*                   cap.database_id, */
+                                                /*                   "\">", */
+                                                /*                   cap.database_id, */
+                                                /*                   "</a>"); */
+
                                         }else{
+                                                //safe_string_paste(1, cap.database_id);
                                                 snprintf(buffer,BUFFER_LEN * 10,"%s",cap.database_id);
                                         }
 
+
                                         /* create line parser line input to be concatenated with other info */
 
-                                        snprintf(append_buffer,BUFFER_LEN*10,"%s:%s %s %s %s %0.4f<br />",cap.database_type, buffer, cap.data_base_name, cap.disease_description,cap.hpo_term, cap.score);
+                                        snprintf(append_buffer,BUFFER_LEN*10 + BUFFER_LEN*10,"%s:%s %s %s %s %0.4f<br />",cap.database_type, buffer, cap.data_base_name, cap.disease_description,cap.hpo_term, cap.score);
+
+
+
                                         //fprintf(stdout,"%s\n%s\n%s\n%s\n%s\n%f (score) \n%s\n \n", cap.database_type, cap.database_id,cap.data_base_name, cap.disease_description, cap.hpo_term, cap.score,buffer);
                                         //fprintf(stdout,"%s\n",append_buffer);
                                         /* change omim id to hyperlink....  */
@@ -285,7 +316,7 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
                                 }
                         }
                         //DPRINTF3("%d %s",strlen(line),line);
-                                
+
                 }
                 line_num++;
         }
@@ -299,7 +330,7 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
 
         }
 
-        
+
         return OK;
 ERROR:
         if(f_ptr){
@@ -326,14 +357,14 @@ int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, ch
         char* sql_query = NULL;
         int sql_len = 0;
         int i,j,c;
-        
+
         struct string_struct* tmp = NULL;
 
-        
+
         ASSERT(ol != NULL,"No List");
         ASSERT(param != NULL,"No parameters");
-        
-                
+
+
         rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
         if(rc!=SQLITE_OK ){
                 ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
@@ -342,16 +373,16 @@ int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, ch
         RUNP(sql_query = create_query_string(sql_query,&sql_len,"INSERT OR IGNORE INTO patient  VALUES ('%s','%s');",param->patient_id,search_term));
         rc = sqlite3_exec(sqlite_db, sql_query, 0, 0, 0);
         if( rc!=SQLITE_OK ){
-                LOG_MSG("try:%s",sql_query);            
+                LOG_MSG("try:%s",sql_query);
                 ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
-        }        	
-        
-       
+        }
+
+
         LOG_MSG("Found: %d associations.",ol->num_entries);
         c = 0;
         for (i = 0; i <= ol->num_entries;i++){
                 RUNP(sql_query = create_query_string(sql_query,&sql_len,"INSERT OR IGNORE INTO diseaseMIM VALUES ('%s','%s','%s','%s');", search_term,  ol->terms[i]->phenotypeMimNumber,ol->terms[i]->phenotype,ol->terms[i]->phenotypeInheritance ));
-                
+
                 rc = sqlite3_exec(sqlite_db, sql_query, 0, 0, 0);
                 if( rc!=SQLITE_OK ){
                         LOG_MSG("try:%s",sql_query);
@@ -374,13 +405,13 @@ int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, ch
                                         series->tree_insert(series, tmp);
                                         tmp = NULL;
                                 }
-                                
+
                                 /* fprintf(stdout,"%s %s %s %s %s\n",ol->terms[i]->phenotypeInheritance,  ol->terms[i]->phenotype,ol->terms[i]->phenotypeMimNumber, ol->terms[i]->geneSymbols[j], ol->terms[i]->phenotypicSeriesNumber); */
                         }
                 }
         }
         LOG_MSG("Found: %d gene symbols.",c);
-              
+
         rc = sqlite3_close(sqlite_db);
         MFREE(sql_query);
         return OK;
@@ -397,7 +428,7 @@ int get_term_list(struct parameters* param)
         char* sql_query = NULL;
         int sql_len = 0;
         sqlite3 *sqlite_db = NULL;
-        int rc;          
+        int rc;
 
         char** term_list = NULL;
         FILE* f_ptr = NULL;
@@ -407,7 +438,7 @@ int get_term_list(struct parameters* param)
         int alloc_numterms = 16;
         int i,j,c;
         int pos;
-        
+
         ASSERT(param != NULL ,"No param.");
         ASSERT(param->local_sqlite_database_name != NULL,"No sqlite database name given.");
 
@@ -416,13 +447,13 @@ int get_term_list(struct parameters* param)
                 term_list[i] = NULL;
                 MMALLOC(term_list[i],sizeof(char) * LINE_LEN);
         }
-        
+
         for(i = 0; i < param->num_infiles;i++){
                 if(!my_file_exists(param->infile[i])){
                         WARNING_MSG("File: %s does not exist!", param->infile[i]);
                 }else{
                         RUNP(f_ptr = fopen(param->infile[i],"r"));
-                        
+
                         while(fgets(line, LINE_LEN, f_ptr)){
                                 DPRINTF3("%s",line);
                                 pos = 0;
@@ -431,7 +462,7 @@ int get_term_list(struct parameters* param)
                                         if(line[j] == ';'){
                                                 term_list[num_terms][pos] = 0;
                                                 DPRINTF2("%s",term_list[num_terms]);
-                                                
+
                                                 pos = 0;
                                                 num_terms++;
                                                 if(num_terms == alloc_numterms){
@@ -440,22 +471,22 @@ int get_term_list(struct parameters* param)
                                                         MREALLOC(term_list,sizeof(char*) * alloc_numterms);
                                                         for(c = num_terms;c < alloc_numterms;c++){
                                                                 term_list[c] = NULL;
-                                                                MMALLOC(term_list[c],sizeof(char) * LINE_LEN);  
+                                                                MMALLOC(term_list[c],sizeof(char) * LINE_LEN);
                                                         }
                                                 }
                                         }else if(iscntrl(line[j])){
                                                 term_list[num_terms][pos] = 0;
-                                                 DPRINTF2("%s",term_list[num_terms]);
-                                                 
+                                                DPRINTF2("%s",term_list[num_terms]);
+
                                                 pos = 0;
                                                 num_terms++;
                                                 if(num_terms == alloc_numterms){
                                                         alloc_numterms = alloc_numterms << 1;
                                                         DPRINTF3("Realloc:%d",alloc_numterms);
                                                         MREALLOC(term_list,sizeof(char*) * alloc_numterms);
-                                                         for(c = num_terms;c < alloc_numterms;c++){
+                                                        for(c = num_terms;c < alloc_numterms;c++){
                                                                 term_list[c] = NULL;
-                                                                MMALLOC(term_list[c],sizeof(char) * LINE_LEN);  
+                                                                MMALLOC(term_list[c],sizeof(char) * LINE_LEN);
                                                         }
                                                 }
                                                 break;
@@ -464,7 +495,7 @@ int get_term_list(struct parameters* param)
                                                 pos++;
                                         }
                                 }
-                                
+
                         }
                         fclose(f_ptr);
                 }
@@ -479,11 +510,11 @@ int get_term_list(struct parameters* param)
         }else{
                 f_ptr = stdout;
         }
-        
+
         for(i = 0 ; i< num_terms;i++){
                 fprintf(f_ptr,"%s\n",term_list[i]);
-                     
-                      
+
+
         }
         if(param->outfile){
                 fclose(f_ptr);
@@ -491,7 +522,7 @@ int get_term_list(struct parameters* param)
 
         /* Insert into mysql databas */
         /* Don't need new table - just insert into patient */
- 
+
         rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
         if(rc!=SQLITE_OK ){
                 ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
@@ -501,13 +532,13 @@ int get_term_list(struct parameters* param)
                 RUNP(sql_query = create_query_string(sql_query,&sql_len,"INSERT OR IGNORE INTO patient  VALUES ('%s','%s');",param->patient_id,term_list[i]));
                 rc = sqlite3_exec(sqlite_db, sql_query, 0, 0, 0);
                 if( rc!=SQLITE_OK ){
-                        LOG_MSG("try:%s",sql_query);            
+                        LOG_MSG("try:%s",sql_query);
                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
-                }        	
-        
+                }
+
         }
-  
-          rc = sqlite3_close(sqlite_db);
+
+        rc = sqlite3_close(sqlite_db);
         if( rc!=SQLITE_OK ){
                 ERROR_MSG("sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
 
@@ -519,7 +550,7 @@ int get_term_list(struct parameters* param)
         }
         MFREE(term_list);
         MFREE(sql_query);
-        
+
         return OK;
 ERROR:
         if(f_ptr){
@@ -541,12 +572,12 @@ int make_table_output(struct parameters* param)
 {
         FILE* fptr = NULL;
         sqlite3 *sqlite_db = NULL;
-        int rc;          
+        int rc;
 
         sqlite3_stmt *pStmt;
         char* buffer = NULL;
-        int buffer_len = 1024;     
- 
+        int buffer_len = 1024;
+
         ASSERT(param != NULL, "No parameters.");
         ASSERT(param->outfile != NULL ,"No outfile.");
 
@@ -555,8 +586,8 @@ int make_table_output(struct parameters* param)
         snprintf(buffer,buffer_len,"%s_omim.csv",param->outfile);
         RUNP(fptr = fopen(buffer,"w"));
 
-        
-        
+
+
         snprintf(buffer,buffer_len,"SELECT patient_id AS ID, patient.DiseaseSearch AS DISEASE,  MIMgene.phenotypeMimNumber AS MIMnumber, diseaseMIM.phenotypeDescription AS DESC, diseaseMIM.phenotypeInheritance AS DESC, MIMgene.gene AS GENE  FROM  patient INNER JOIN diseaseMIM ON diseaseMIM.DiseaseSearch = patient.DiseaseSearch INNER JOIN MIMgene ON MIMgene.phenotypeMimNumber = diseaseMIM.phenotypeMimNumber   WHERE patient_id == \"%s\";",param->patient_id);
 
         rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
@@ -572,11 +603,11 @@ int make_table_output(struct parameters* param)
                 sqlite3_close(sqlite_db);
                 exit(1);
         }
-	
+
         while ( sqlite3_step(pStmt) !=SQLITE_DONE) {
                 int i;
                 int num_cols = sqlite3_column_count(pStmt);
-		
+
                 for (i = 0; i < num_cols; i++)
                 {
                         if(i){
@@ -601,12 +632,12 @@ int make_table_output(struct parameters* param)
                 fprintf(fptr,"\n");
         }
 
-        
+
         sqlite3_finalize(pStmt);
         fclose(fptr);
         /*
           rc = sqlite3_exec(sqlite_db, buffer, callback, 0, 0);
-    
+
           if (rc != SQLITE_OK ) {
           fprintf(stderr, "Failed to select data\n");
           }*/
@@ -616,10 +647,10 @@ int make_table_output(struct parameters* param)
 
         RUNP(fptr = fopen(buffer,"w"));
 
-        
-        
-       
-       
+
+
+
+
         //snprintf(buffer,buffer_len,"SELECT * FROM  phenolyzer   WHERE patient_id == \"%s\" ORDER BY score DESC;",param->patient_id);
 
 
@@ -632,11 +663,11 @@ int make_table_output(struct parameters* param)
                 sqlite3_close(sqlite_db);
                 exit(1);
         }
-	
+
         while ( sqlite3_step(pStmt) !=SQLITE_DONE) {
                 int i;
                 int num_cols = sqlite3_column_count(pStmt);
-		
+
                 for (i = 0; i < num_cols; i++)
                 {
                         if(i){
@@ -661,7 +692,7 @@ int make_table_output(struct parameters* param)
                 fprintf(fptr,"\n");
         }
 
-        
+
         sqlite3_finalize(pStmt);
 
 
@@ -671,10 +702,10 @@ int make_table_output(struct parameters* param)
 
         RUNP(fptr = fopen(buffer,"w"));
 
-        
-        
-       
-       
+
+
+
+
         snprintf(buffer,buffer_len,"SELECT * FROM  patient  WHERE patient_id == \"%s\";",param->patient_id);
 
 
@@ -684,11 +715,11 @@ int make_table_output(struct parameters* param)
                 sqlite3_close(sqlite_db);
                 exit(1);
         }
-	
+
         while ( sqlite3_step(pStmt) !=SQLITE_DONE) {
                 int i;
                 int num_cols = sqlite3_column_count(pStmt);
-		
+
                 for (i = 0; i < num_cols; i++)
                 {
                         if(i){
@@ -713,7 +744,7 @@ int make_table_output(struct parameters* param)
                 fprintf(fptr,"\n");
         }
 
-        
+
         sqlite3_finalize(pStmt);
         rc = sqlite3_close(sqlite_db);
         if( rc!=SQLITE_OK ){
@@ -725,7 +756,7 @@ int make_table_output(struct parameters* param)
         return OK;
 ERROR:
         if(fptr){
-                fclose(fptr); 
+                fclose(fptr);
         }
         if(sqlite_db){
                 rc = sqlite3_close(sqlite_db);
@@ -749,7 +780,7 @@ int query_omim_and_insert_results(struct parameters* param)
         char buffer[BUFFER_LEN];
         int i;
         int len;
-        
+
         ASSERT(param != NULL, "No parameters.");
 
 
@@ -758,19 +789,20 @@ int query_omim_and_insert_results(struct parameters* param)
 
         //RUN(phenotype_series_search(param,"PS106210"));
 
-        
+
 
         LOG_MSG("Phenotype search done");
-                
+
+
         RUNP(fptr = fopen(param->phenofile,"r"));
 
-        
-        
+
+
 
         while (fgets(buffer, sizeof(buffer), fptr)){
 
                 len = strlen(buffer);
-     
+
                 while(isspace((int)buffer[len]) || iscntrl((int)buffer[len])){
                         buffer[len] = 0;
                         len--;
@@ -779,28 +811,28 @@ int query_omim_and_insert_results(struct parameters* param)
                 while(isspace((int)buffer[len]) || iscntrl((int)buffer[len])){
                         len++;
                 }
-                
-                
+
+
                 LOG_MSG("Searching with: \"%s\"",buffer+len);
                 RUN(search_and_insert_disease(param,buffer+len, series));
         }
-        
+
 
 
 
         //series->print_tree(series,NULL);
-        
-      
+
+
         series->flatten_tree(series);
         ASSERT((series->cur_data_nodes == series->num_entries),"fail");
-       
+
         for(i = 0; i < series->cur_data_nodes;i++){
                 tmp = series->data_nodes[i];
                 LOG_MSG("Searching for terms in phenotypic series: %s", tmp->name);
-                
+
                 RUN(phenotype_series_search(param, tmp->name));
         }
-        
+
 
 
         fclose(fptr);
@@ -811,14 +843,14 @@ int query_omim_and_insert_results(struct parameters* param)
 
         // this stuff is allocated by libcrypto and libssl when curl is called by not freed.
         // this is no problem but when debugging with valgrind I'l like to see 'my' mem leaks!!
-        CONF_modules_free();
-        ERR_remove_state(0);
-        ENGINE_cleanup();
-        CONF_modules_unload(1);
-        ERR_free_strings();
-        EVP_cleanup();
-        CRYPTO_cleanup_all_ex_data();
-        sk_SSL_COMP_free(SSL_COMP_get_compression_methods()); 
+        //CONF_modules_free();
+        //ERR_remove_state(0);
+        //ENGINE_cleanup();
+        //CONF_modules_unload(1);
+        //ERR_free_strings();
+        //EVP_cleanup();
+        //CRYPTO_cleanup_all_ex_data();
+        //sk_SSL_COMP_free(SSL_COMP_get_compression_methods());
 
         return OK;
 ERROR:
@@ -840,7 +872,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
           NAME:mimNumber	601282
           6           53   NAME:phenotype	Epidermolysis bullosa simplex with muscular dystrophy
           6            6   NAME:phenotypeMimNumber	226670
-   
+
 
         */
         DPRINTF3("entering:%s %s %d\n",name,value,new);
@@ -848,47 +880,47 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                 DPRINTF3("found matching tag :%s %s %d\n",name,value,new);
                 DPRINTF3("existing:%s \n",ol->terms[cur_OMIM]->mimNumber);
 
-                
+
                 if(strcmp(ol->terms[cur_OMIM]->mimNumber,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->mimNumber,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->mimNumber));
-                        
+
                 }else{
-                        new = 1;  
+                        new = 1;
                 }
-         
+
         }
         if(strcmp(name,"phenotype") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->phenotype,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->phenotype,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->phenotype));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
         if(strcmp(name,"phenotypeMimNumber") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->phenotypeMimNumber,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->phenotypeMimNumber,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->phenotypeMimNumber));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
         if(strcmp(name,"phenotypeMappingKey") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->phenotypeMappingKey ,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->phenotypeMappingKey,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->phenotypeMappingKey));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
         if(strcmp(name,"phenotypeInheritance") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->phenotypeInheritance,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->phenotypeInheritance,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->phenotypeInheritance));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
 
         if(strcmp(name,"phenotypicSeriesNumber") == 0 ) {
@@ -896,19 +928,19 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                         sprintf(ol->terms[cur_OMIM]->phenotypicSeriesNumber,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->phenotypicSeriesNumber));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
 
 
-        
+
         if(strcmp(name,"sequenceID") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->sequenceID,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->sequenceID,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->sequenceID));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
 
         if(strcmp(name,"chromosome") == 0 ) {
@@ -916,8 +948,8 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                         sprintf(ol->terms[cur_OMIM]->chromosome,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->chromosome));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
 
         if(strcmp(name,"chromosomeSymbol") == 0 ) {
@@ -925,16 +957,16 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                         sprintf(ol->terms[cur_OMIM]->chromosomeSymbol,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->chromosomeSymbol));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
         if(strcmp(name,"chromosomeSort") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->chromosomeSort,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->chromosomeSort,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->chromosomeSort));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
 
         if(strcmp(name,"chromosomeLocationStart") == 0 ) {
@@ -942,8 +974,8 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                         sprintf(ol->terms[cur_OMIM]->chromosomeLocationStart,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->chromosomeLocationStart));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
 
         if(strcmp(name,"chromosomeLocationEnd") == 0 ) {
@@ -951,8 +983,8 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                         sprintf(ol->terms[cur_OMIM]->chromosomeLocationEnd,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->chromosomeLocationEnd));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
 
         if(strcmp(name,"transcript") == 0 ) {
@@ -960,16 +992,16 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                         sprintf(ol->terms[cur_OMIM]->transcript,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->transcript));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
         if(strcmp(name,"cytoLocation") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->cytoLocation,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->cytoLocation,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->cytoLocation));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
 
         if(strcmp(name,"computedCytoLocation") == 0 ) {
@@ -977,8 +1009,8 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                         sprintf(ol->terms[cur_OMIM]->computedCytoLocation,"%s", value);
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->computedCytoLocation));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
 
 
@@ -988,8 +1020,8 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                         DPRINTF3("gene inheritance: %d.",ol->terms[cur_OMIM]->geneInheritance );
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->geneInheritance));
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
         if(strcmp(name,"geneSymbols") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->geneSymbols[0],"NA")==0){
@@ -997,7 +1029,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
 
                         char* token;
                         char var[64];
-                       
+
                         int i = 0;
 
                         token = strtok (value, seps);
@@ -1014,10 +1046,10 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                         }
 
 
-                      
+
                 }else{
-                        new = 1;  
-                }                
+                        new = 1;
+                }
         }
         DPRINTF3("entering:%s %s %d\n",name,value,new);
         if(new == 1){
@@ -1026,14 +1058,47 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                 }
                 ol->num_entries++;
                 RUN(enter_term(ol,name,value ));
-                
+
         }
 
         return OK;
 ERROR:
-        return FAIL; 
+        return FAIL;
 }
 
 
 
 
+
+
+char* safe_string_paste( int n_string, ... )
+{
+        char* tmp = NULL;
+        int len = 0;
+        int i;
+
+        va_list ap;
+        va_start( ap, n_string);
+        for(i = 0; i < n_string; i++){
+                len += strlen(va_arg(ap, char* ));
+
+        }
+        va_end(ap);
+
+        /* plus one for terminator */
+        len++;
+
+        MMALLOC(tmp, sizeof(char) * len);
+        tmp[0] = 0;
+
+        va_start( ap, n_string);
+        for(i = 0; i < n_string; i++){
+                tmp = strncat(tmp, va_arg(ap, char*), BUFFER_LEN);
+                //strlen += strnlen(va_arg( intArgumentPointer, int ), BUFFER_LEN);
+
+        }
+        va_end(ap);
+        return tmp;
+ERROR:
+        return NULL;
+}
