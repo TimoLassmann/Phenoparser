@@ -197,7 +197,7 @@ int phenotype_series_search(struct parameters* param, char* search_term)
 
 
                 LOG_MSG("start search with %d genes.", state.ol->num_entries);
-                snprintf(buffer,BUFFER_LEN*10,"http://api.omim.org/api/entry/search?search=phenotypic_series_number:%s%s%s&start=%d&limit=%d&include=geneMap&apiKey=%s","%22",search_term_tmp,"%22",start,step, param->omimkey);
+                snprintf(buffer,BUFFER_LEN*10,"https://api.omim.org/api/entry/search?search=phenotypic_series_number:%s%s%s&start=%d&limit=%d&include=geneMap&apiKey=%s","%22",search_term_tmp,"%22",start,step, param->omimkey);
                 DPRINTF2("%s",buffer);
 
 
