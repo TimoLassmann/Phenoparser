@@ -24,7 +24,6 @@ library(tidyverse)
 library(kableExtra)
 library(ontologyIndex)
 library(reticulate)
-use_python("VARSNGPY")
 ```
 
 ```{r loadOBO, warning = FALSE, message = FALSE, include=FALSE}
@@ -188,7 +187,7 @@ df <- df %>%
 
 ```
 
-```{python acmg and write,include=FALSE}
+```{python acmg and write,include=FALSE, engine.path = 'VARSNGPY'}
 sys.path.append('VARSNGSCRIPTS')
 from acmg import doacmg
 runacmg = VARRUNACMG
