@@ -611,7 +611,8 @@ int make_table_output(struct parameters* param)
                 for (i = 0; i < num_cols; i++)
                 {
                         if(i){
-                                fprintf(fptr,",");
+                                /* fprintf(fptr,","); */
+                                fprintf(fptr,"\t");
                         }
                         switch (sqlite3_column_type(pStmt, i))
                         {
@@ -670,7 +671,8 @@ int make_table_output(struct parameters* param)
                 for (i = 0; i < num_cols; i++)
                 {
                         if(i){
-                                fprintf(fptr,",");
+                                /* fprintf(fptr,","); */
+                                fprintf(fptr,"\t");
                         }
                         switch (sqlite3_column_type(pStmt, i))
                         {
@@ -721,7 +723,8 @@ int make_table_output(struct parameters* param)
                 for (i = 0; i < num_cols; i++)
                 {
                         if(i){
-                                fprintf(fptr,",");
+                                /* fprintf(fptr,","); */
+                                fprintf(fptr,"\t");
                         }
                         switch (sqlite3_column_type(pStmt, i))
                         {
