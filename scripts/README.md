@@ -301,23 +301,27 @@ The options are:
 -i <patient id - comma separated list or absent to produce reports for all patients>
 -g <gemini database path for a particular platform>
 -d <phenotype database path>
+-a <run acmg 1:0>
+-o <path to acmg gene:impact:disease database>
 -t <report template>
 -l <logfile to keep track of what is happening>
 ```
+
+The `-a` and `-o` options relate to the optional incorporation of ACMG guidelines into the reports. A gene:impact:disease database is available [here]<https://github.com/richardwfrancis/acmgdb.git> or you can create your own using the `get_gene_disease.py` script in the Phenoparser/scripts directory.
 
 Example usage:
 
 ```
 # specific patients
-create_variant_reports.sh -i "patient1,patient2" -g Torrent.db -d omim.db -t report_master_template.Rmd -l reports.log
+create_variant_reports.sh -i "patient1,patient2" -g Torrent.db -a 0 -d omim.db -t report_master_template.Rmd -l reports.log
 
 # all patients
-create_variant_reports.sh -g Torrent.db -d omim.db -t report_master_template.Rmd -l reports.log
+create_variant_reports.sh -g Torrent.db -d omim.db -a 1 -o acmg_id.db -t report_master_template.Rmd -l reports.log
 ```
 
 ### Template
 
-The template `report_V2_template.Rmd` combines variants and disease annotation from the various sources generated in the pipeline.
+The template `report_V3_template.Rmd` combines variants and disease annotation from the various sources generated in the pipeline.
 It then orders the subsequent interactive table so as to place the most likely causative variants at the top of the list.
 Additional annotation is presented such as HGVS expressions, links out to UniProt and ClinVar plus other useful references.
 
@@ -329,17 +333,15 @@ A complete script to run the entire pipeline can be created, which might look so
 
 ```bash
 #!/usr/bin/env bash
-
+  
 # source the config file
 . ./sng_config
 
 # make a clean copy of the data and merge
-run_pre_merge.sh -i ~/data/patient_data -l pre_merge_log
+run_pre_merge.sh -i /data/raw/seqnextgen/batch1-12/illumina/ -l pre_merge_log
 
 # create gemini databases for the three platforms
-build_gemini.sh -p GATK -d GATK.db -l gatk.log
-build_gemini.sh -p Torrent -d Torrent.db -l torrent.log
-build_gemini.sh -p Life -d Life.db -l life.log
+build_gemini.sh -p HaplotypeCaller -d Illumina.db -l haplotypecaller.log -t 10
 
 # make an omim database - uses phenoparser
 make_omim_database.sh -d omim.db -l omim.log -k <OMIM_KEY>
@@ -348,10 +350,8 @@ make_omim_database.sh -d omim.db -l omim.log -k <OMIM_KEY>
 make_extended_phenolyzer_database.sh -d omim.db -l phenolyzer.log
 
 # create a patient report
-##create_variant_reports.sh -i "patient1,patient2" -g Torrent.db -d omim.db -t $SNGSCRIPTS/report_V2_template.Rmd -l reports.log
+#create_variant_reports.sh -i "patient1,patient2" -g Torrent.db -a 1 -o acmg_id.db -d omim.db -t $SNGSCRIPTS/report_V3_template.Rmd -l reports.log
 
 # or all patient reports
-create_variant_reports.sh -g Torrent.db -d omim.db -t $SNGSCRIPTS/report_V2_template.Rmd -l reports.log
-create_variant_reports.sh -g GATK.db -d omim.db -t $SNGSCRIPTS/report_V2_template.Rmd -l reports.log
-create_variant_reports.sh -g Life.db -d omim.db -t $SNGSCRIPTS/report_V2_template.Rmd -l reports.log
+create_variant_reports.sh -g Illumina.db -d omim.db -a 1 -o acmg_id.db -t $SNGSCRIPTS/report_V3_template.Rmd -l reports.log
 ```
