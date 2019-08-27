@@ -3,33 +3,35 @@
 # this is the directory to which all patient data is copied and where the pipeline writes temporary files
 export SNGTMP="tmp"
 # this is the directory where the gemini binary lives
-export SNGGEMINIBIN="/usr/local/src/gemini/tools/bin/"
+export SNGGEMINIBIN="/data/scratch/reference/GEMINI/tools/bin/"
 # a temp directory that is made in your patient_analysis folder to store temporary Gemini files
 export SNGGEMINI_TMP="geminitmp"
 # this is the subdirectory of the phenoparser code that contains the pipeline scripts
-export SNGSCRIPTS="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/"
+export SNGSCRIPTS="/data/scratch/software/Phenoparser/scripts/"
 # file path to the bcftools root directory where the bcftools binary lives
-export SNGBCFTOOLS="/usr/local/src/bcftools-1.6/"
+export SNGBCFTOOLS="/data/scratch/software/bcftools/"
 # file path to the htslib root directory where bgzip and tabix binaries live
-export SNGHTSLIB="/usr/local/src/htslib-1.6/"
+export SNGHTSLIB="/data/scratch/software/htslib/"
 # file path to the grabix root directory where the grabix binary lives
-export SNGGRABIX="/usr/local/src/grabix/grabix-master/"
+export SNGGRABIX="/data/scratch/software/grabix/"
 # this is the directory where the vt binary lives
-export SNGVTBIN="/usr/local/src/vt/"
+export SNGVTBIN="/data/scratch/software/vt/"
 # this is the directory where the vt reference sequence lives - should be the reference the variants were aligned to
-export SNGVTREF="/usr/local/src/vt/hg19/hg19.fa.gz"
+export SNGVTREF="/data/scratch/reference/vt/hg19/hg19.fa.gz"
 # this is the directory where the VEP binary lives
-export SNGVEPBIN="/usr/local/src/vep/ensembl-tools-release-84/scripts/variant_effect_predictor/"
-# this is the directory where VEP has installed its cache and plugins
-export SNGVEPTMP="/home/vep_cache"
+export SNGVEPBIN="/data/scratch/software/ensembl-vep/"
+# this is the directory where VEP has installed its cache and plugins 
+export SNGVEPTMP="/data/scratch/software/vep_cache/"
 # this is the directory where the bgzipped reference assembly for VEP lives
-export SNGVEPREF="/usr/local/src/vep/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz"
+export SNGVEPREF="/data/scratch/software/vep_cache/homo_sapiens/97_GRCh37/Homo_sapiens.GRCh37.dna.primary_assembly.fa.gz";
 # this is the phenolyzer root directory where the disease_annotation.pl perl script lives 
-export SNGPLBIN="/usr/local/src/Phenolyzer/phenolyzer/"
+export SNGPLBIN="/data/scratch/software/phenolyzer/"
 # this is the phenoparser root directory where the phenoparser binary lives
-export SNGPPBIN="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/src/"
+export SNGPPBIN="/data/scratch/software/Phenoparser/src/"
 # this is the location of the human phenotype ontology file
-export SNGHPOBO="/home/richard/pipeline/SeqNextGen_pipeline/Phenoparser/scripts/hp.obo"
+export SNGHPOBO="/data/scratch/reference/hpo/hp.obo"
+# python binary
+export SNGPY="/usr/bin/python3"
 
 # export these locations to the PATH
-export PATH=$PATH:$SNGGEMINIBIN:$SNGSCRIPTS:$SNGBCFTOOLS:$SNGHTSLIB:$SNGGRABIX:$SNGVTBIN:$SNGVEPBIN:$SNGPLBIN:$SNGPPBIN
+export PATH=$PATH:$SNGGEMINIBIN:$SNGSCRIPTS:$SNGBCFTOOLS:$SNGHTSLIB:$SNGGRABIX:$SNGVTBIN:$SNGVEPBIN:$SNGPLBIN:$SNGPPBIN:$SNGPY
