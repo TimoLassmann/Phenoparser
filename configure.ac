@@ -132,7 +132,8 @@ ac_configure_args="$ac_configure_args PACKAGE_VERSION=$PACKAGE_VERSION   PACKAGE
 
 AC_CONFIG_SUBDIRS([tldevel])
 
-AC_CONFIG_FILES([Makefile src/Makefile scripts/Makefile])
+#AC_CONFIG_FILES([Makefile src/Makefile scripts/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile])
 
 if test $HAVE_EMACS = "false"; then
 AC_MSG_WARN([*** emacs not found, pipeline scripts will not be tangled!])
