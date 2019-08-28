@@ -3,6 +3,7 @@ EXTRA_DIST = autogen.sh
 LIB_TLDEVELDIR = @LIB_TLDEVELDIR@ 
 
 # top_builddir = @top_builddir@
-SUBDIRS = tldevel src scripts 
+#SUBDIRS = tldevel src scripts 
+SUBDIRS = tldevel src
 
 
