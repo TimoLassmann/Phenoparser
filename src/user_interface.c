@@ -6,6 +6,7 @@
 
 
 #include "tldevel.h"
+#include "tlmisc.h"
 
 #include "phenoparser.h"
 
@@ -100,7 +101,7 @@ struct parameters* get_readphe_param(int argc, char * argv[])
         struct parameters* param = NULL;
         int c, help;
 
-        RUN(print_program_header(argv,"Loads Phenolyzer results into a database."));
+        /* RUN(print_program_header(argv,"Loads Phenolyzer results into a database.")); */
 
 
         if(argc == 2){
@@ -165,7 +166,7 @@ struct parameters* get_readphe_param(int argc, char * argv[])
         ASSERT(param->phenofile != NULL,"No phenotype file.");
 
 
-        RUN(log_command_line(argc, argv));
+        /* RUN(log_command_line(argc, argv)); */
 
         LOG_MSG("Read param.");
         return param;
@@ -179,7 +180,7 @@ struct parameters* get_termlist_param(int argc, char * argv[])
 {
         struct parameters* param = NULL;
         int c, help;
-        RUN(print_program_header(argv,"Collects terms from files and merges them."));
+        /* RUN(print_program_header(argv,"Collects terms from files and merges them.")); */
         help = 0;
         c = 0;
 
@@ -188,7 +189,7 @@ struct parameters* get_termlist_param(int argc, char * argv[])
                 exit(EXIT_SUCCESS);
         }
 
-        RUN(log_command_line(argc, argv));
+        /* RUN(log_command_line(argc, argv)); */
 
 
         c = 0;
@@ -260,7 +261,7 @@ struct parameters* get_insert_param(int argc, char * argv[])
         struct parameters* param = NULL;
         int c, help;
 
-        RUN(print_program_header(argv,"Retrieves data from OMIM and stores in local sqlite db."));
+        /* RUN(print_program_header(argv,"Retrieves data from OMIM and stores in local sqlite db.")); */
 
 
         if(argc == 2){
@@ -334,7 +335,7 @@ struct parameters* get_insert_param(int argc, char * argv[])
                 ERROR_MSG("Phenotype file: %s does not exist",param->phenofile);
         }
 
-        RUN(log_command_line(argc, argv));
+        /* RUN(log_command_line(argc, argv)); */
 
         LOG_MSG("Read param.");
         return param;
@@ -350,7 +351,7 @@ struct parameters* get_panel_param(int argc, char * argv[])
         struct parameters* param = NULL;
         int c, help;
 
-        RUN(print_program_header(argv,"Retrieves data from OMIM and stores in local sqlite db."));
+        /* RUN(print_program_header(argv,"Retrieves data from OMIM and stores in local sqlite db.")); */
 
 
         if(argc == 2){
@@ -414,7 +415,7 @@ struct parameters* get_panel_param(int argc, char * argv[])
 
 
 
-        RUN(log_command_line(argc, argv));
+        /* RUN(log_command_line(argc, argv)); */
 
         LOG_MSG("Read param.");
         return param;

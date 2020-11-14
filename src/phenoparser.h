@@ -30,7 +30,8 @@
 #include "openssl/engine.h"
 #include "openssl/ssl.h"
 
-#include "rbtree.h"
+#define BUFFER_LEN 128
+/* #include "rbtree.h" */
 
 
 struct parameters{
@@ -86,11 +87,16 @@ struct ParserStruct {
 
 };
 
-struct string_struct{
-        char* name;
+/* struct string_struct{ */
+/*         char* name; */
+/* }; */
+
+
+struct series_list{
+        char** list;
+        int alloc_len;
+        int len;
 };
-
-
 
 /* user interface */
 int print_global_help(int argc, char * argv[]);
@@ -106,8 +112,8 @@ void free_param(struct parameters* param);
 
 
 int phenotype_series_search(struct parameters* param, char* search_term);
-int search_and_insert_disease(struct parameters* param, char* search_term, struct rbtree_root* series);
 
+int search_and_insert_disease(struct parameters* param, char* search_term, struct series_list* sl);
 /* database stuff */
 char* create_query_string(char* query,int* query_len,const char * format, ...);
 
@@ -115,8 +121,9 @@ char* create_query_string(char* query,int* query_len,const char * format, ...);
 int check_if_db_exists_otherwise_create(struct parameters* param);
 
 /* kind of database but defined in main.c */
-int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, char* search_term, struct rbtree_root* series);
+int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, char* search_term, struct series_list* sl);
 int enter_term(struct OMIM_list* ol, char* name,char* value );
+
 
 
 /* omim list */

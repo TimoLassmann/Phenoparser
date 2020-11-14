@@ -1,7 +1,8 @@
 #include "tldevel.h"
 
-#include "phenoparser.h"
+#include "tlmisc.h"
 
+#include "phenoparser.h"
 
 
 #define str(x)          # x
@@ -17,10 +18,11 @@ int read_phenolyzer_seed_gene_list(struct parameters* param);
 int read_phenolyzer_merge_gene_scores(struct parameters* param);
 int get_term_list(struct parameters* param);
 
+static int insert_phenoterm_into_list(struct series_list* sl, char* term);
+
 int main (int argc, char * argv[])
 {
         struct parameters* param = NULL;
-
 
         if(argc == 1){
                 /* print help */
@@ -70,7 +72,7 @@ ERROR:
 int read_phenolyzer_seed_gene_list(struct parameters* param)
 {
         FILE* f_ptr = NULL;
-        char line[LINE_LEN];
+        char line[BUFSIZ];
         int line_num = 1;
         int r;
 
@@ -116,9 +118,9 @@ int read_phenolyzer_seed_gene_list(struct parameters* param)
         //4	FGD3	89846	0.05362	Predicted
 
         line_num = 1;
-        while(fgets(line, LINE_LEN, f_ptr)){
+        while(fgets(line, BUFSIZ, f_ptr)){
                 if(line_num> 1){
-                        r = sscanf(line,"%d %"xstr(BUFFER_LEN)"s %d %lf %"xstr(BUFFER_LEN)"s", &Rank, Gene, &Id,&Score,Status);
+                        r = sscanf(line,"%d %"xstr(BUFSIZ)"s %d %lf %"xstr(BUFSIZ)"s", &Rank, Gene, &Id,&Score,Status);
                         if(r == 4){
                                 Status[0] = 'N';
                                 Status[1] = 'A';
@@ -126,7 +128,7 @@ int read_phenolyzer_seed_gene_list(struct parameters* param)
 
                         }
 
-                        DPRINTF3("%s%d\t%s\t%d\t%e\t%s\n",line,Rank,Gene,Id,Score,Status);
+                        /* DPRINTF3("%s%d\t%s\t%d\t%e\t%s\n",line,Rank,Gene,Id,Score,Status); */
                         if(r != 4 && r != 5 ){
                                 ERROR_MSG("Problem reading (%d): %s",r,line);
                         }
@@ -167,23 +169,23 @@ ERROR:
 int read_phenolyzer_merge_gene_scores(struct parameters* param)
 {
         FILE* f_ptr = NULL;
-        char line[LINE_LEN];
+        char line[BUFSIZ];
         int line_num = 1;
 
         int new_gene = 1;
 
-        char buffer[BUFFER_LEN*10];
-        char append_buffer[BUFFER_LEN*10 + BUFFER_LEN*10];
-        char gene[BUFFER_LEN];
+        char buffer[BUFSIZ*10];
+        char append_buffer[BUFSIZ*10 + BUFSIZ*10];
+        char gene[BUFSIZ];
 
         /* entries we want to capture */
 
         struct capture{
-                char database_type[BUFFER_LEN]; /* Type of database : OMIM., umls, ORPHANET etc */
-                char database_id[BUFFER_LEN];   /* ID number of entry i.e. C0265210 or  117550*/
-                char data_base_name[BUFFER_LEN];      /* name of database - king of redundant */
-                char disease_description[BUFFER_LEN]; /* name of disease  */
-                char hpo_term[BUFFER_LEN];            /* HPO term triggering match  */
+                char database_type[BUFSIZ]; /* Type of database : OMIM., umls, ORPHANET etc */
+                char database_id[BUFSIZ];   /* ID number of entry i.e. C0265210 or  117550*/
+                char data_base_name[BUFSIZ];      /* name of database - king of redundant */
+                char disease_description[BUFSIZ]; /* name of disease  */
+                char hpo_term[BUFSIZ];            /* HPO term triggering match  */
                 double score;
 
         } cap;
@@ -226,7 +228,7 @@ int read_phenolyzer_merge_gene_scores(struct parameters* param)
 
         RUNP(f_ptr = fopen(buffer,"r"));
         line_num = 1;
-        while(fgets(line, LINE_LEN, f_ptr)){
+        while(fgets(line, BUFSIZ, f_ptr)){
                 if(line_num> 1){
                         if(new_gene){
                                 sscanf(line,"%"xstr(BUFFER_LEN)"s\t",gene);
@@ -351,7 +353,7 @@ ERROR:
 
 
 
-int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, char* search_term, struct rbtree_root* series)
+int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, char* search_term, struct series_list* sl)
 {
         sqlite3 *sqlite_db = NULL;
         int rc;
@@ -359,7 +361,7 @@ int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, ch
         int sql_len = 0;
         int i,j,c;
 
-        struct string_struct* tmp = NULL;
+        /* struct string_struct* tmp = NULL; */
 
 
         ASSERT(ol != NULL,"No List");
@@ -385,7 +387,7 @@ int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, ch
                 RUNP(sql_query = create_query_string(sql_query,&sql_len,"INSERT OR IGNORE INTO diseaseMIM VALUES ('%s','%s','%s','%s');", search_term,  ol->terms[i]->phenotypeMimNumber,ol->terms[i]->phenotype,ol->terms[i]->phenotypeInheritance ));
 
                 rc = sqlite3_exec(sqlite_db, sql_query, 0, 0, 0);
-                if( rc!=SQLITE_OK ){
+                if( rc != SQLITE_OK ){
                         LOG_MSG("try:%s",sql_query);
                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }
@@ -398,13 +400,8 @@ int action_insert_into_sqlite( struct OMIM_list* ol,struct parameters* param, ch
                                         LOG_MSG("try:%s",sql_query);
                                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                                 }
-                                if(series){
-                                        MMALLOC(tmp, sizeof(struct string_struct));
-                                        tmp->name = NULL;
-                                        MMALLOC(tmp->name,sizeof(char) * 128);
-                                        snprintf(tmp->name,128,"%s", ol->terms[i]->phenotypicSeriesNumber);
-                                        series->tree_insert(series, tmp);
-                                        tmp = NULL;
+                                if(sl){
+                                        insert_phenoterm_into_list(sl, ol->terms[i]->phenotypicSeriesNumber);
                                 }
 
                                 /* fprintf(stdout,"%s %s %s %s %s\n",ol->terms[i]->phenotypeInheritance,  ol->terms[i]->phenotype,ol->terms[i]->phenotypeMimNumber, ol->terms[i]->geneSymbols[j], ol->terms[i]->phenotypicSeriesNumber); */
@@ -423,6 +420,34 @@ ERROR:
         return FAIL;
 }
 
+int insert_phenoterm_into_list(struct series_list* sl, char* term)
+{
+        /* check if already present */
+        int i,c;
+        if(!strcmp(term,"NA")){
+                return OK;
+        }
+        c = 1;
+        for(i = 0; i < sl->len;i++){
+                if(!strncmp(sl->list[i],term, 128)){
+                        c = 0;
+                        break;
+                }
+        }
+        if(c){
+                sl->list[sl->len] = NULL;
+                MMALLOC(sl->list[sl->len],sizeof(char) * 128);
+                snprintf(sl->list[sl->len],128,"%s", term);
+                sl->len++;
+                if(sl->len == sl->alloc_len){
+                        sl->alloc_len = sl->alloc_len + sl->alloc_len /2;
+                        MREALLOC(sl->list, sizeof(char*) * sl->alloc_len);
+                }
+        }
+        return OK;
+ERROR:
+        return FAIL;
+}
 
 int get_term_list(struct parameters* param)
 {
@@ -433,7 +458,7 @@ int get_term_list(struct parameters* param)
 
         char** term_list = NULL;
         FILE* f_ptr = NULL;
-        char line[LINE_LEN];
+        char line[BUFSIZ];
 
         int num_terms = 0;
         int alloc_numterms = 16;
@@ -446,7 +471,7 @@ int get_term_list(struct parameters* param)
         MMALLOC(term_list,sizeof(char*) * alloc_numterms);
         for(i = 0; i < alloc_numterms;i++){
                 term_list[i] = NULL;
-                MMALLOC(term_list[i],sizeof(char) * LINE_LEN);
+                MMALLOC(term_list[i],sizeof(char) * BUFSIZ);
         }
 
         for(i = 0; i < param->num_infiles;i++){
@@ -455,39 +480,39 @@ int get_term_list(struct parameters* param)
                 }else{
                         RUNP(f_ptr = fopen(param->infile[i],"r"));
 
-                        while(fgets(line, LINE_LEN, f_ptr)){
-                                DPRINTF3("%s",line);
+                        while(fgets(line, BUFSIZ, f_ptr)){
+                                /* DPRINTF3("%s",line); */
                                 pos = 0;
-                                for(j = 0;j < LINE_LEN;j++){
-                                        DPRINTF3("%c",line[j]);
+                                for(j = 0;j < BUFSIZ;j++){
+                                        /* DPRINTF3("%c",line[j]); */
                                         if(line[j] == ';'){
                                                 term_list[num_terms][pos] = 0;
-                                                DPRINTF2("%s",term_list[num_terms]);
+                                                /* DPRINTF2("%s",term_list[num_terms]); */
 
                                                 pos = 0;
                                                 num_terms++;
                                                 if(num_terms == alloc_numterms){
                                                         alloc_numterms = alloc_numterms << 1;
-                                                        DPRINTF3("Realloc:%d",alloc_numterms);
+                                                        /* DPRINTF3("Realloc:%d",alloc_numterms); */
                                                         MREALLOC(term_list,sizeof(char*) * alloc_numterms);
                                                         for(c = num_terms;c < alloc_numterms;c++){
                                                                 term_list[c] = NULL;
-                                                                MMALLOC(term_list[c],sizeof(char) * LINE_LEN);
+                                                                MMALLOC(term_list[c],sizeof(char) * BUFSIZ);
                                                         }
                                                 }
                                         }else if(iscntrl(line[j])){
                                                 term_list[num_terms][pos] = 0;
-                                                DPRINTF2("%s",term_list[num_terms]);
+                                                /* DPRINTF2("%s",term_list[num_terms]); */
 
                                                 pos = 0;
                                                 num_terms++;
                                                 if(num_terms == alloc_numterms){
                                                         alloc_numterms = alloc_numterms << 1;
-                                                        DPRINTF3("Realloc:%d",alloc_numterms);
+                                                        /* DPRINTF3("Realloc:%d",alloc_numterms); */
                                                         MREALLOC(term_list,sizeof(char*) * alloc_numterms);
                                                         for(c = num_terms;c < alloc_numterms;c++){
                                                                 term_list[c] = NULL;
-                                                                MMALLOC(term_list[c],sizeof(char) * LINE_LEN);
+                                                                MMALLOC(term_list[c],sizeof(char) * BUFSIZ);
                                                         }
                                                 }
                                                 break;
@@ -776,18 +801,23 @@ ERROR:
 int query_omim_and_insert_results(struct parameters* param)
 {
         FILE* fptr = NULL;
-        struct rbtree_root* series = NULL;
-        struct string_struct* tmp = NULL;
+        /* struct rbtree_root* series = NULL; */
+        /* struct string_struct* tmp = NULL; */
         char buffer[BUFFER_LEN];
         int i;
         int len;
 
         ASSERT(param != NULL, "No parameters.");
 
+        struct series_list* sl = NULL;
 
-        RUNP(series = make_string_tree());
+        MMALLOC(sl, sizeof(struct series_list));
+        sl->alloc_len = 256;
+        sl->len = 0;
+        sl->list = NULL;
+        MMALLOC(sl->list, sizeof(char*) * sl->alloc_len);
 
-
+        /* RUNP(series = make_string_tree()); */
         //RUN(phenotype_series_search(param,"PS106210"));
 
 
@@ -815,7 +845,7 @@ int query_omim_and_insert_results(struct parameters* param)
 
 
                 LOG_MSG("Searching with: \"%s\"",buffer+len);
-                RUN(search_and_insert_disease(param,buffer+len, series));
+                RUN(search_and_insert_disease(param,buffer+len,  sl));
         }
 
 
@@ -824,22 +854,21 @@ int query_omim_and_insert_results(struct parameters* param)
         //series->print_tree(series,NULL);
 
 
-        series->flatten_tree(series);
-        ASSERT((series->cur_data_nodes == series->num_entries),"fail");
+        /* series->flatten_tree(series); */
+        /* ASSERT((series->cur_data_nodes == series->num_entries),"fail"); */
+        for(i = 0; i < sl->len ;i++){
 
-        for(i = 0; i < series->cur_data_nodes;i++){
-                tmp = series->data_nodes[i];
-                LOG_MSG("Searching for terms in phenotypic series: %s", tmp->name);
-
-                RUN(phenotype_series_search(param, tmp->name));
+                LOG_MSG("Searching for terms in phenotypic series: %s", sl->list[i]);
+                RUN(phenotype_series_search(param, sl->list[i]));
         }
-
-
-
         fclose(fptr);
 
-        if(series){
-                series->free_tree(series);
+        if(sl){
+                for(i = 0; i < sl->len ;i++){
+                        MFREE(sl->list[i]);
+                }
+                MFREE(sl->list);
+                MFREE(sl);
         }
 
         // this stuff is allocated by libcrypto and libssl when curl is called by not freed.
@@ -876,10 +905,10 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
 
 
         */
-        DPRINTF3("entering:%s %s %d\n",name,value,new);
+        /* DPRINTF3("entering:%s %s %d\n",name,value,new); */
         if(strcmp(name,"mimNumber") == 0 ) {
-                DPRINTF3("found matching tag :%s %s %d\n",name,value,new);
-                DPRINTF3("existing:%s \n",ol->terms[cur_OMIM]->mimNumber);
+                /* DPRINTF3("found matching tag :%s %s %d\n",name,value,new); */
+                /* DPRINTF3("existing:%s \n",ol->terms[cur_OMIM]->mimNumber); */
 
 
                 if(strcmp(ol->terms[cur_OMIM]->mimNumber,"NA")==0){
@@ -1018,7 +1047,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
         if(strcmp(name,"geneInheritance") == 0 ) {
                 if(strcmp(ol->terms[cur_OMIM]->geneInheritance,"NA")==0){
                         sprintf(ol->terms[cur_OMIM]->geneInheritance,"%s", value);
-                        DPRINTF3("gene inheritance: %d.",ol->terms[cur_OMIM]->geneInheritance );
+                        /* DPRINTF3("gene inheritance: %d.",ol->terms[cur_OMIM]->geneInheritance ); */
                         RUN(remove_comma_quote(ol->terms[cur_OMIM]->geneInheritance));
                 }else{
                         new = 1;
@@ -1052,7 +1081,7 @@ int enter_term(struct OMIM_list* ol, char* name,char* value )
                         new = 1;
                 }
         }
-        DPRINTF3("entering:%s %s %d\n",name,value,new);
+        /* DPRINTF3("entering:%s %s %d\n",name,value,new); */
         if(new == 1){
                 if(cur_OMIM + 1 == ol->num_malloced){
                         resize_omim_list(ol,10);

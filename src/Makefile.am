@@ -1,17 +1,21 @@
+ACLOCAL_AMFLAGS= -I m4
 # Build the library in the hand subdirectory first.
+LIB_TLDEVELDIR = @LIB_TLDEVELDIR@
 
+@VALGRIND_CHECK_RULES@
 
-LIB_TLDEVELDIR = @LIB_TLDEVELDIR@ 
+CLEANFILES =
 
-MYLIBDIRS = ../tldevel/libtldevel.a 
+AM_CFLAGS = @TLDEVEL_CPPFLAGS@
 
+AM_LDFLAGS = @DEAD_STRIP@
+AM_LDFLAGS += -Wno-undef
+AM_LDFLAGS += -static
 
-MYINCDIRS = -I${top_builddir}/${LIB_TLDEVELDIR} \
--I${top_srcdir}/${LIB_TLDEVELDIR}
-
-AM_CPPFLAGS=${MYINCDIRS} 
+LIBS = @LIBS@ @TLDEVEL_LIB@ -lm
 
 bin_PROGRAMS = phenoparser
+
 phenoparser_SOURCES = \
 phenoparser.h \
 omimlist.c \
@@ -20,7 +24,3 @@ sqlite_database.c \
 main.c \
 user_interface.c \
 misc.c
-
-
-phenoparser_LDADD = ${MYLIBDIRS}
-

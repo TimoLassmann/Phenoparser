@@ -26,10 +26,10 @@ static size_t parseStreamCallback(void *contents, size_t length, size_t nmemb, v
 
 static int callback(void *NotUsed, int argc, char **argv, char **azColName);
 
-int search_and_insert_disease(struct parameters* param, char* search_term, struct rbtree_root* series)
+int search_and_insert_disease(struct parameters* param, char* search_term, struct series_list* sl)
 {
-        char buffer[BUFFER_LEN*10];
-        char search_term_tmp[BUFFER_LEN];
+        char buffer[BUFSIZ];
+        char search_term_tmp[BUFSIZ];
         CURL *curl_handle;
         CURLcode res;
         XML_Parser parser;
@@ -79,13 +79,11 @@ int search_and_insert_disease(struct parameters* param, char* search_term, struc
                 curl_global_init(CURL_GLOBAL_ALL ^ CURL_GLOBAL_SSL);
                 curl_handle = curl_easy_init();
 
-                snprintf(buffer,BUFFER_LEN*10,"https://api.omim.org/api/entry/search?search=%s%s%s+AND+gm_phenotype_exists:true&include=geneMap&start=%d&limit=%d&apiKey=%s","%22",search_term_tmp,"%22",start,step, param->omimkey);
+                snprintf(buffer,BUFSIZ,"https://api.omim.org/api/entry/search?search=%s%s%sinclude=existMap&include=geneMap&start=%d&limit=%d&apiKey=%s","%22",search_term_tmp,"%22",start,step, param->omimkey);
+
 
                 LOG_MSG("%s",buffer);
-                DPRINTF2("%s",buffer);
-
-
-
+                /* DPRINTF2("%s",buffer); */
 
                 curl_easy_setopt(curl_handle, CURLOPT_URL,buffer);
                 curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, parseStreamCallback);
@@ -96,7 +94,7 @@ int search_and_insert_disease(struct parameters* param, char* search_term, struc
                 /* Perform the request and any follow-up parsing. */
                 res = curl_easy_perform(curl_handle);
                 //LOG_MSG("STATE:%d", state.ok);
-                if(res != CURLE_OK) {
+                if(res != CURLE_OK){
                         fprintf(stderr, "curl_easy_perform() failed: %s\n",curl_easy_strerror(res));
                 } else if(state.ok) {
                         /* Expat requires one final call to finalize parsing. */
@@ -105,12 +103,14 @@ int search_and_insert_disease(struct parameters* param, char* search_term, struc
                                 fprintf(stderr, "Finalizing parsing failed with error code %d (%s).\n",
                                         error_code, XML_ErrorString(error_code));
                         }
+                } else if(state.ok == 0){
+                        ERROR_MSG("Parsing of data failed.");
                 }
 
 
                 /* insert results into tables...  */
 
-                RUN(action_insert_into_sqlite(state.ol,param,search_term,series));
+                RUN(action_insert_into_sqlite(state.ol,param,search_term,sl));
 
 
 
@@ -133,13 +133,16 @@ int search_and_insert_disease(struct parameters* param, char* search_term, struc
         LOG_MSG("Done");
         return OK;
 ERROR:
+        XML_ParserFree(parser);
+        curl_easy_cleanup(curl_handle);
+        curl_global_cleanup();
         return FAIL;
 }
 
 int phenotype_series_search(struct parameters* param, char* search_term)
 {
-        char buffer[BUFFER_LEN*10];
-        char search_term_tmp[BUFFER_LEN];
+        char buffer[BUFSIZ];
+        char search_term_tmp[BUFSIZ];
         CURL *curl_handle;        CURLcode res;
         XML_Parser parser;
         struct ParserStruct state;
@@ -198,8 +201,8 @@ int phenotype_series_search(struct parameters* param, char* search_term)
 
 
                 LOG_MSG("start search with %d genes.", state.ol->num_entries);
-                snprintf(buffer,BUFFER_LEN*10,"https://api.omim.org/api/entry/search?search=phenotypic_series_number:%s%s%s&start=%d&limit=%d&include=geneMap&apiKey=%s","%22",search_term_tmp,"%22",start,step, param->omimkey);
-                DPRINTF2("%s",buffer);
+                snprintf(buffer,BUFSIZ,"https://api.omim.org/api/entry/search?search=phenotypic_series_number:%s%s%s&start=%d&limit=%d&include=geneMap&apiKey=%s","%22",search_term_tmp,"%22",start,step, param->omimkey);
+                /* DPRINTF2("%s",buffer); */
 
 
 
@@ -339,10 +342,10 @@ static size_t parseStreamCallback(void *contents, size_t length, size_t nmemb, v
         /* Only parse if we're not already in a failure state. */
         if(state->ok && XML_Parse(parser, contents, real_size, 0) == 0) {
                 int error_code = XML_GetErrorCode(parser);
-                fprintf(stderr, "Parsing response buffer of length %lu failed"
-                        " with error code %d (%s).\n",
+                fprintf(stderr, "Parsing response buffer of length %lu failed with error code %d (%s).\n",
                         real_size, error_code, XML_ErrorString(error_code));
                 state->ok = 0;
+
         }
         return real_size;
 }

@@ -1,4 +1,7 @@
 #include "tldevel.h"
+
+#include "tlmisc.h"
+
 #include "phenoparser.h"
 
 
@@ -43,49 +46,50 @@ ERROR:
 
 int check_if_db_exists_otherwise_create(struct parameters* param)
 {
-        char buffer[BUFFER_LEN];
+        char buffer[BUFSIZ];
         sqlite3 *sqlite_db = NULL;
         int rc;
         ASSERT(param->local_sqlite_database_name != NULL,"No database.");
         if(!my_file_exists(param->local_sqlite_database_name)){
-                DPRINTF1("Creating sqlite database:%s\n", param->local_sqlite_database_name);
+                /* DPRINTF1("Creating sqlite database:%s\n", param->local_sqlite_database_name); */
 
                 rc = sqlite3_open(param->local_sqlite_database_name, &sqlite_db);
                 if(rc!=SQLITE_OK ){
                         ERROR_MSG("sqlite3_open failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }
 
-                DPRINTF2("Creating table: patient\n");
-                snprintf(buffer,BUFFER_LEN,"CREATE TABLE patient(patient_id TEXT NOT NULL, DiseaseSearch TEXT,  unique (patient_id,DiseaseSearch) );");
+                /* DPRINTF2("Creating table: patient\n"); */
+                snprintf(buffer,BUFSIZ,"CREATE TABLE patient(patient_id TEXT NOT NULL, DiseaseSearch TEXT,  unique (patient_id,DiseaseSearch) );");
                 rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
                 if( rc!=SQLITE_OK ){
                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }
 
-                DPRINTF2("Creating table: diseaseMIM\n");
-                snprintf(buffer,BUFFER_LEN,"CREATE TABLE diseaseMIM(DiseaseSearch TEXT, phenotypeMimNumber INT NOT NULL,phenotypeDescription TEXT,phenotypeInheritance TEXT, unique (DiseaseSearch,phenotypeMimNumber, phenotypeInheritance));");
+                /* DPRINTF2("Creating table: diseaseMIM\n"); */
+                snprintf(buffer,BUFSIZ,"CREATE TABLE diseaseMIM(DiseaseSearch TEXT, phenotypeMimNumber INT NOT NULL,phenotypeDescription TEXT,phenotypeInheritance TEXT, unique (DiseaseSearch,phenotypeMimNumber, phenotypeInheritance));");
+                LOG_MSG("%s", buffer);
                 rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
                 if( rc!=SQLITE_OK ){
                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }
 
-                DPRINTF2("Creating table: MIMgene\n");
-                snprintf(buffer,BUFFER_LEN,"CREATE TABLE MIMgene(phenotypeMimNumber INT NOT NULL, gene TEXT NOT NULL,unique (phenotypeMimNumber,gene));");
+                /* DPRINTF2("Creating table: MIMgene\n"); */
+                snprintf(buffer,BUFSIZ,"CREATE TABLE MIMgene(phenotypeMimNumber INT NOT NULL, gene TEXT NOT NULL,unique (phenotypeMimNumber,gene));");
                 rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
                 if( rc!=SQLITE_OK ){
                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }
 
-                DPRINTF2("Creating table: Phenolyzer\n");
-                snprintf(buffer,BUFFER_LEN,"CREATE TABLE phenolyzer(patient_id TEXT NOT NULL,gene TEXT NOT NULL,identifier INT,score REAL,status TEXT NOT NULL, unique (patient_id,gene));");
+                /* DPRINTF2("Creating table: Phenolyzer\n"); */
+                snprintf(buffer,BUFSIZ,"CREATE TABLE phenolyzer(patient_id TEXT NOT NULL,gene TEXT NOT NULL,identifier INT,score REAL,status TEXT NOT NULL, unique (patient_id,gene));");
 
                 rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
                 if( rc!=SQLITE_OK ){
                         ERROR_MSG("sqlite3_exec failed: %s\n", sqlite3_errmsg(sqlite_db));
                 }
 
-                DPRINTF2("Creating table: Phenolyzer Gene Information \n");
-                snprintf(buffer,BUFFER_LEN,"CREATE TABLE phenolyzerGeneData(patient_id TEXT NOT NULL,gene TEXT NOT NULL,gene_evidence TEXT NOT NULL, unique (patient_id,gene));");
+                /* DPRINTF2("Creating table: Phenolyzer Gene Information \n"); */
+                snprintf(buffer,BUFSIZ,"CREATE TABLE phenolyzerGeneData(patient_id TEXT NOT NULL,gene TEXT NOT NULL,gene_evidence TEXT NOT NULL, unique (patient_id,gene));");
 
                 rc = sqlite3_exec(sqlite_db, buffer, 0, 0, 0);
                 if( rc!=SQLITE_OK ){
@@ -101,7 +105,7 @@ int check_if_db_exists_otherwise_create(struct parameters* param)
         return OK;
 ERROR:
         if(sqlite_db){
-                DPRINTF3("Error in check if db exists handled...");
+                /* DPRINTF3("Error in check if db exists handled..."); */
                 rc = sqlite3_close(sqlite_db);
                 if( rc!=SQLITE_OK ){
                         fprintf(stderr,"sqlite3_close failed: %s\n", sqlite3_errmsg(sqlite_db));
