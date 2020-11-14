@@ -30,9 +30,6 @@
 #include "openssl/engine.h"
 #include "openssl/ssl.h"
 
-
-#include "tldevel.h"
-
 #include "rbtree.h"
 
 
@@ -48,7 +45,7 @@ struct parameters{
 };
 
 struct OMIM_list{
-        struct OMIM** terms; 
+        struct OMIM** terms;
         int num_entries;
         int num_malloced;
 };
@@ -77,7 +74,7 @@ struct MemoryStruct {
         char *memory;
         size_t size;
 };
- 
+
 struct ParserStruct {
         int ok;
         size_t tags;
@@ -85,7 +82,7 @@ struct ParserStruct {
         struct MemoryStruct characters;
         struct OMIM_list* ol;
         struct OMIM** omimout;
-        int num_omim_out; 
+        int num_omim_out;
 
 };
 

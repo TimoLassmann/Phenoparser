@@ -1,4 +1,4 @@
-
+#include "tldevel.h"
 #include "phenoparser.h"
 
 long int compare_name(void* keyA, void* keyB);
@@ -64,14 +64,14 @@ struct rbtree_root* make_string_tree(void)
         void (*fp_print)(void* ptr,FILE* out_ptr) = NULL;
 
         void (*fp_free)(void* ptr) = NULL;
-	
+
 
         fp_get = &get_name;
         fp_cmp = &compare_name;
         fp_print = &print_string_struct;
         fp_cmp_same = &resolve_default;
         fp_free = &free_string_struct;
-	
+
         RUNP(root = init_tree(fp_get,fp_cmp,fp_cmp_same,fp_print,fp_free));
         return root;
 ERROR:
@@ -94,4 +94,3 @@ int remove_comma_quote(char* in)
         }
         return OK;
 }
-

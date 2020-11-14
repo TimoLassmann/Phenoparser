@@ -1,14 +1,14 @@
-
+#include "tldevel.h"
 
 #include "phenoparser.h"
 
-  
+
 struct OMIM_list* init_omim_list(int n)
 {
         struct OMIM_list* ol = NULL;
         int i;
-        ASSERT(n != 0,"Requesting zero entries!"); 
-        
+        ASSERT(n != 0,"Requesting zero entries!");
+
         MMALLOC(ol,sizeof(struct OMIM_list));
         ol->terms = NULL;
         ol->num_entries = 0;
@@ -18,8 +18,8 @@ struct OMIM_list* init_omim_list(int n)
                 ol->terms[i] = NULL;
                 RUNP(ol->terms[i] =  init_omim_entry());
         }
-        
-        
+
+
         return ol;
 ERROR:
         return NULL;
@@ -43,15 +43,15 @@ int resize_omim_list(struct OMIM_list* ol, int add)
 {
         int i;
         ASSERT(ol != NULL,"Nolist...");
-        
+
         MREALLOC(ol->terms,sizeof(struct OMIM*)* (ol->num_malloced+add));
-        
+
         for(i = ol->num_malloced; i < ol->num_malloced+add;i++){
                 ol->terms[i] = NULL;
                 RUNP(ol->terms[i] =  init_omim_entry());
         }
         ol->num_malloced += add;
-        
+
         return OK;
 ERROR:
         return FAIL;
@@ -71,11 +71,11 @@ void free_omim_list(struct OMIM_list* ol)
 }
 
 
-        
+
 struct OMIM* init_omim_entry(void)
 {
         struct OMIM* omim = NULL;
-        
+
         int i;
         MMALLOC(omim,sizeof(struct OMIM));
         omim->chromosome = NULL;
@@ -95,7 +95,7 @@ struct OMIM* init_omim_entry(void)
         omim->phenotypicSeriesNumber = NULL;
         omim->sequenceID = NULL;
         omim->transcript = NULL;
-                
+
 
         MMALLOC(omim->chromosome,sizeof(char) * 128);//
         MMALLOC(omim->chromosomeLocationEnd,sizeof(char) * 128);// = NULL;
@@ -114,7 +114,7 @@ struct OMIM* init_omim_entry(void)
         MMALLOC(omim->sequenceID,sizeof(char) * 128);// = NULL;
         MMALLOC(omim->transcript,sizeof(char) * 128);// = NULL;
 
-        
+
 
         omim->geneSymbols = NULL;
         MMALLOC(omim->geneSymbols,sizeof(char*) * MAX_ALT_GENE_NAMES);
@@ -133,7 +133,7 @@ ERROR:
 int clear_term(struct OMIM* omim)
 {
         int i;
-        
+
         ASSERT(omim != NULL,"No term structure!");
 
         snprintf(omim->chromosome,128,"NA");
@@ -156,11 +156,11 @@ int clear_term(struct OMIM* omim)
         for(i = 0; i < MAX_ALT_GENE_NAMES;i++){
                 snprintf(omim->geneSymbols[i],128,"NA");
         }
-        
-        
+
+
         return OK;
 ERROR:
-        return FAIL; 
+        return FAIL;
 }
 
 void free_omim(struct OMIM* omim)
@@ -171,7 +171,7 @@ void free_omim(struct OMIM* omim)
                         MFREE(omim->geneSymbols[i]);// ,sizeof(char) * 128);// = NULL;
                 }
                 MFREE(omim->geneSymbols);//,sizeof(char*) * 10);
-        
+
                 MFREE(omim->chromosome);
                 MFREE(omim->chromosomeLocationEnd);
                 MFREE(omim->chromosomeLocationStart);
@@ -191,5 +191,3 @@ void free_omim(struct OMIM* omim)
                 MFREE(omim);
         }
 }
-
-

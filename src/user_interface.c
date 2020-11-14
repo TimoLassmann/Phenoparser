@@ -1,10 +1,11 @@
-
 #define OPT_OMIM_KEY 1
 #define OPT_PATIENT_ID 2
 #define OPT_SQLITE_DB 3
 #define OPT_PHENOFILE 4
 #define OPT_OUTFILE 5
 
+
+#include "tldevel.h"
 
 #include "phenoparser.h"
 
@@ -490,6 +491,3 @@ int byg_count(char* pattern,char*text)
         }
         return count;
 }
-
-
-
